@@ -62,8 +62,8 @@ def page(title, body, root="."):
     <p class="sub">Merged work on <a href="https://github.com/basecamp/omarchy">basecamp/omarchy</a>
     · {season_line}</p>
     <nav>
-      <a href="{root}/index.html">Areas</a>
-      <a href="{root}/people.html">People</a>
+      <a href="{root}/index.html">Ladder</a>
+      <a href="{root}/areas.html">Areas</a>
       <a href="{root}/classes.html">Categories</a>
       <a href="{root}/methodology.html">How we count</a>
     </nav>
@@ -112,7 +112,57 @@ def week_table(weekly):
     )
 
 
+def beta_ladder_rows(summary, root="."):
+    rows = []
+    for person in summary["standings"]:
+        placing = person.get("season", {}).get("placing")
+        mark = ' <span class="placing">placing</span>' if placing else ""
+        rows.append(
+            "<tr>"
+            f'<td>{person["rank"]}</td>'
+            f'<th scope="row"><a href="{person_href(person["login"], root)}">{escape(person["login"])}</a>{mark}</th>'
+            f'<td>{escape(person.get("tier_label", ""))}</td>'
+            f'<td>{person.get("season", {}).get("points", 0)}</td>'
+            f'<td>{person.get("season", {}).get("event_count", 0)}</td>'
+            f'<td>{person.get("lifetime_points", 0)}</td>'
+            "</tr>"
+        )
+    return "\n".join("        " + row for row in rows)
+
+
 def write_home(snapshot, summary):
+    facts = summary["facts"]
+    frag_items = "".join(
+        "<li>"
+        f'<span class="frag">{escape(hit["frag"])}</span> '
+        f'<a href="{person_href(hit["login"], ".")}">{escape(hit["login"])}</a> '
+        f'<a href="{escape(hit["url"])}">#{hit["number"]}</a> '
+        f"{escape(hit['title'])}"
+        "</li>"
+        for hit in facts.get("recent_frags") or []
+    )
+    frag_block = (
+        f"<h2>Kill feed</h2><p class=\"meta\">Frags from the last 7 days.</p><ul class=\"frags\">{frag_items}</ul>"
+        if frag_items
+        else ""
+    )
+    body = f"""    <p class="lede">Beta ladder. Ranked by merged work this season.</p>
+    <p class="meta">Snapshot {escape(snapshot["generated_at"])} · {snapshot["pr_count"]} merged PRs · {len(summary["standings"])} on the board</p>
+    <table class="ladder">
+      <thead>
+        <tr><th>#</th><th>Login</th><th>Tier</th><th>Beta</th><th>Merges</th><th>Lifetime</th></tr>
+      </thead>
+      <tbody>
+{beta_ladder_rows(summary, ".")}
+      </tbody>
+    </table>
+    {frag_block}
+    <p class="meta"><a href="areas.html">Areas</a> · <a href="classes.html">Categories</a></p>
+"""
+    (SITE / "index.html").write_text(page("Omarchy Quattro Arena", body, root="."))
+
+
+def write_areas(snapshot, summary):
     facts = summary["facts"]
     rows = []
     for area in AREA_ORDER:
@@ -147,21 +197,8 @@ def write_home(snapshot, summary):
         if "closed_unmerged_90d" in funnel:
             funnel_bits.append(f"{funnel['closed_unmerged_90d']} closed unmerged")
     funnel_line = ", ".join(funnel_bits)
-    frag_items = "".join(
-        "<li>"
-        f'<span class="frag">{escape(hit["frag"])}</span> '
-        f'<a href="{person_href(hit["login"], ".")}">{escape(hit["login"])}</a> '
-        f'<a href="{escape(hit["url"])}">#{hit["number"]}</a> '
-        f"{escape(hit['title'])}"
-        "</li>"
-        for hit in facts.get("recent_frags") or []
-    )
-    frag_block = (
-        f"<h2>Kill feed</h2><p class=\"meta\">Frags from the last 7 days.</p><ul class=\"frags\">{frag_items}</ul>"
-        if frag_items
-        else ""
-    )
-    body = f"""    <p class="lede">Where work landed. Merged pull requests, by area and by the people who shipped them.</p>
+    body = f"""    <h1>Areas</h1>
+    <p class="lede">Where work landed. Merged pull requests, by folder.</p>
     <p class="meta">Snapshot {escape(snapshot["generated_at"])} · {snapshot["pr_count"]} merged PRs</p>
     <ul class="facts">
       <li>People who merged in 30 / 90 days: <strong>{facts["unique_people"]["30d"]}</strong> / <strong>{facts["unique_people"]["90d"]}</strong></li>
@@ -183,41 +220,27 @@ def write_home(snapshot, summary):
     </table>
     <h2>Merges by week</h2>
     {week_table(facts["weekly"])}
-    {frag_block}
-    <p><a href="people.html">Beta ladder</a></p>
 """
-    (SITE / "index.html").write_text(page("Omarchy Quattro Arena", body, root="."))
+    (SITE / "areas.html").write_text(
+        page("Areas — Omarchy Quattro Arena", body, root=".")
+    )
 
 
-def write_people(summary):
-    rows = []
-    for person in summary["standings"]:
-        placing = person.get("season", {}).get("placing")
-        mark = ' <span class="placing">placing</span>' if placing else ""
-        rows.append(
-            "<tr>"
-            f'<td>{person["rank"]}</td>'
-            f'<th scope="row"><a href="{person_href(person["login"], ".")}">{escape(person["login"])}</a>{mark}</th>'
-            f'<td>{escape(person.get("tier_label", ""))}</td>'
-            f'<td>{person.get("season", {}).get("points", 0)}</td>'
-            f'<td>{person.get("season", {}).get("event_count", 0)}</td>'
-            f'<td>{person.get("lifetime_points", 0)}</td>'
-            "</tr>"
-        )
-    body = f"""    <h1>Beta ladder</h1>
-    <p>Order is seasonal score. Placing until 10 season merges and 14 days in.
-    Class lives on the person page. <a href="classes.html">Category ladders</a>.</p>
-    <table>
-      <thead>
-        <tr><th>#</th><th>Login</th><th>Tier</th><th>Beta</th><th>Merges</th><th>Lifetime</th></tr>
-      </thead>
-      <tbody>
-{chr(10).join("        " + row for row in rows)}
-      </tbody>
-    </table>
-"""
+def write_people_redirect():
     (SITE / "people.html").write_text(
-        page("Beta ladder — Omarchy Quattro Arena", body, root=".")
+        """<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="refresh" content="0; url=index.html">
+  <link rel="canonical" href="index.html">
+  <title>Beta ladder</title>
+</head>
+<body>
+  <p><a href="index.html">Beta ladder</a></p>
+</body>
+</html>
+"""
     )
 
 
@@ -470,8 +493,8 @@ def write_classes_index(summary):
         for area in AREA_ORDER
     )
     body = f"""    <h1>Category ladders</h1>
-    <p>Season boards by labor and by folder. The overall ladder stays on
-    <a href="people.html">People</a>.</p>
+    <p>Season boards by labor and by folder. The overall ladder is the
+    <a href="index.html">home page</a>.</p>
     <h2>Class</h2>
     <ul>{class_items}</ul>
     <h2>Area</h2>
@@ -591,7 +614,8 @@ def main():
     SITE.mkdir(parents=True, exist_ok=True)
     write_css()
     write_home(snapshot, summary)
-    write_people(summary)
+    write_areas(snapshot, summary)
+    write_people_redirect()
     write_classes_index(summary)
     for class_id, group in (summary.get("class_boards") or {}).items():
         write_class_board(class_id, group)
