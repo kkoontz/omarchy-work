@@ -321,6 +321,7 @@ def write_person(person):
 
 
 def write_methodology(snapshot):
+    season = current_season()
     catalog = "".join(
         f"<li><strong>{escape(label)}</strong> (<code>{escape(aid)}</code>)</li>"
         for aid, label in CATALOG
@@ -342,7 +343,7 @@ def write_methodology(snapshot):
         Size is 0.6 for one file, 1.0 for 2–8 files, 1.15 for 9+.
         In a given week the 1st merge is full value, then 0.85, 0.70, … never below 0.25. Extra work still counts.</li>
       <li><strong>Frags</strong> — 2+ merges by the same login in 24 hours: Double Kill, Triple Kill, Multi Kill, Mega Kill, Monster Kill, Ultra Kill, Godlike. The home kill feed is those callouts from the last 7 days.</li>
-      <li><strong>Beta season</strong> — 2026-08-25 through 2026-12-31. Seasonal points are merges in that window. After 21 days with no merge, seasonal score eases toward 40% of its raw value; it does not fall to zero. Placing while you have fewer than 10 season merges and have been in the season under 14 days.</li>
+      <li><strong>{escape(season["name"])} season</strong> — {escape(season["start"])} through {escape(season["end"])}. Seasonal points are merges in that window. After 21 days with no merge, seasonal score eases toward 40% of its raw value; it does not fall to zero. Placing while you have fewer than 10 season merges and have been in the season under 14 days.</li>
     </ul>
     <h2>Achievement catalog</h2>
     <ul class="catalog">{catalog}</ul>

@@ -9,13 +9,13 @@ class Seasons(unittest.TestCase):
     def test_beta_is_current(self):
         season = current()
         self.assertEqual(season["id"], "beta")
-        self.assertEqual(season["start"], "2026-08-25")
+        self.assertEqual(season["start"], "2026-08-10")
         self.assertEqual(season["end"], "2026-12-31")
 
     def test_in_season(self):
         season = current()
-        self.assertTrue(in_season("2026-08-25T00:00:00Z", season))
-        self.assertFalse(in_season("2026-08-24T23:00:00Z", season))
+        self.assertTrue(in_season("2026-08-10T00:00:00Z", season))
+        self.assertFalse(in_season("2026-08-09T23:00:00Z", season))
 
     def test_decay_has_a_floor(self):
         self.assertEqual(decay_multiplier(21), 1.0)
