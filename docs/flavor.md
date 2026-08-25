@@ -29,7 +29,7 @@ From merge timestamps, not from chat:
 - 7 → Ultra Kill
 - 8+ → Godlike / Unstoppable
 
-These are announcements on the person combat log and maybe a global “recent frags” strip. They do not replace score.
+These are announcements on the person combat log. The home strip is the **kill feed** (frags from the last 7 days). Keep the word frag. They do not replace score.
 
 ## Scoring (wired)
 

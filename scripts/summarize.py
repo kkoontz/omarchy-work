@@ -8,6 +8,8 @@ from datetime import datetime, timezone, timedelta
 from achievements import score as achievement_score
 from areas import AREA_ORDER
 from scoring import score_events
+from seasons import current as current_season
+from seasons import season_status
 
 WINDOWS = {
     "30d": timedelta(days=30),
@@ -157,6 +159,7 @@ def build_people(prs, now):
         events, total = score_events(person["prs"])
         person["combat_log"] = events
         person["lifetime_points"] = total
+        person["season"] = season_status(events, current_season(), now=now)
     return people
 
 

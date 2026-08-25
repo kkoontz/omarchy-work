@@ -150,7 +150,7 @@ def write_home(snapshot, summary):
         for hit in facts.get("recent_frags") or []
     )
     frag_block = (
-        f"<h2>Recent frags</h2><ul class=\"frags\">{frag_items}</ul>"
+        f"<h2>Kill feed</h2><p class=\"meta\">Frags from the last 7 days.</p><ul class=\"frags\">{frag_items}</ul>"
         if frag_items
         else ""
     )
@@ -193,6 +193,7 @@ def write_people(summary):
             f'<td>{ach["earned"]} / {ach["total"]}</td>'
             f'<td>{ach["percent"]}%</td>'
             f'<td>{len(person["prs"])}</td>'
+            f'<td>{person.get("season", {}).get("points", 0)}</td>'
             f'<td>{person.get("lifetime_points", 0)}</td>'
             "</tr>"
         )
@@ -205,7 +206,7 @@ def write_people(summary):
     Breadth across the tree counts; a pile of merges in one folder does not fill the catalog.</p>
     <table>
       <thead>
-        <tr><th>#</th><th>Login</th><th>Achievements</th><th>Share</th><th>Merges</th><th>Points</th></tr>
+        <tr><th>#</th><th>Login</th><th>Achievements</th><th>Share</th><th>Merges</th><th>Beta</th><th>Lifetime</th></tr>
       </thead>
       <tbody>
 {chr(10).join("        " + row for row in rows)}
@@ -275,6 +276,7 @@ def write_person(person):
         for aid, _ in CATALOG
     )
     active = "yes" if person["still_active"] else "no"
+    placing = " (placing)" if person.get("season", {}).get("placing") else ""
     log_rows = []
     for event in person.get("combat_log") or []:
         frag = (
@@ -298,7 +300,7 @@ def write_person(person):
     )
     body = f"""    <h1>{escape(login)}</h1>
     <p>Rank {person["rank"]} by achievement share ({ach["percent"]}% · {ach["earned"]} of {ach["total"]}).
-    {len(person["prs"])} merges · {person.get("lifetime_points", 0)} lifetime points.
+    {len(person["prs"])} merges · Beta {person.get("season", {}).get("points", 0)}{placing} · {person.get("lifetime_points", 0)} lifetime.
     First {escape(person["first_merged_at"][:10])}, last {escape(person["last_merged_at"][:10])}.
     Active in the last 90 days: {active}.</p>
     <h2>Achievements</h2>
@@ -339,7 +341,8 @@ def write_methodology(snapshot):
         Area base is 10 for shell/commands/hyprland/install/migrations, 8 for agent-skill/applications/systemd, 6 for themes/tests/docs/manual/config, 3 for other.
         Size is 0.6 for one file, 1.0 for 2–8 files, 1.15 for 9+.
         In a given week the 1st merge is full value, then 0.85, 0.70, … never below 0.25. Extra work still counts.</li>
-      <li><strong>Frags</strong> — 2+ merges by the same login in 24 hours: Double Kill, Triple Kill, Multi Kill, Mega Kill, Monster Kill, Ultra Kill, Godlike.</li>
+      <li><strong>Frags</strong> — 2+ merges by the same login in 24 hours: Double Kill, Triple Kill, Multi Kill, Mega Kill, Monster Kill, Ultra Kill, Godlike. The home kill feed is those callouts from the last 7 days.</li>
+      <li><strong>Beta season</strong> — 2026-08-25 through 2026-12-31. Seasonal points are merges in that window. After 21 days with no merge, seasonal score eases toward 40% of its raw value; it does not fall to zero. Placing while you have fewer than 10 season merges and have been in the season under 14 days.</li>
     </ul>
     <h2>Achievement catalog</h2>
     <ul class="catalog">{catalog}</ul>

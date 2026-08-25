@@ -20,4 +20,4 @@ Open http://127.0.0.1:8000
 
 ## How we count
 
-See the site’s [How we count](https://kkoontz.github.io/omarchy-work/methodology.html) page. Credit is merged PRs. Points use area, size, and a weekly diminishing multiplier (never zero). People are still ordered by achievement share. GitHub Actions rebuilds nightly.
+See the site’s [How we count](https://kkoontz.github.io/omarchy-work/methodology.html) page. Credit is merged PRs. Points use area, size, and a weekly diminishing multiplier (never zero). Beta season (2026-08-25 – 2026-12-31) has its own score with idle decay toward a floor. People are still ordered by achievement share. GitHub Actions rebuilds nightly.
