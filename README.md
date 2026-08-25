@@ -11,6 +11,9 @@ Beta season: 2026-08-10 – 2026-12-31 (`data/seasons.json`). Public beta and �
 ```bash
 python3 scripts/test_areas.py
 python3 scripts/test_summarize.py
+python3 scripts/test_seasons.py
+python3 scripts/test_scoring.py
+python3 scripts/test_ranks.py
 GITHUB_TOKEN=$(gh auth token) python3 scripts/collect.py
 python3 scripts/build.py
 python3 -m http.server -d site 8000
@@ -20,4 +23,4 @@ Open http://127.0.0.1:8000
 
 ## How we count
 
-See the site’s [How we count](https://kkoontz.github.io/omarchy-work/methodology.html) page. Credit is merged PRs. Points use area, size, and a weekly diminishing multiplier (never zero). Beta season (2026-08-10 – 2026-12-31) has its own score with idle decay toward a floor. People are still ordered by achievement share. GitHub Actions rebuilds nightly.
+See the site’s [How we count](https://kkoontz.github.io/omarchy-work/methodology.html) page. Credit is merged PRs. Points use area, size, and a weekly diminishing multiplier (never zero). Beta season (2026-08-10 – 2026-12-31) has its own score with idle decay toward a floor. The people page is the Beta ladder, ordered by seasonal score. GitHub Actions rebuilds nightly.

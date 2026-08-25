@@ -7,6 +7,7 @@ from datetime import datetime, timezone, timedelta
 
 from achievements import score as achievement_score
 from areas import AREA_ORDER
+from ranks import assign as assign_ladder
 from scoring import score_events
 from seasons import current as current_season
 from seasons import season_status
@@ -187,30 +188,7 @@ def recent_frags(people, now, days=7):
 
 
 def rank_people(people):
-    ordered = sorted(
-        people.values(),
-        key=lambda person: (
-            -person["achievements"]["percent"],
-            -person["achievements"]["earned"],
-            person["login"].lower(),
-        ),
-    )
-    standings = []
-    last_key = None
-    place = 0
-    shown = 0
-    for person in ordered:
-        shown += 1
-        key = (
-            person["achievements"]["percent"],
-            person["achievements"]["earned"],
-        )
-        if key != last_key:
-            place = shown
-            last_key = key
-        person["rank"] = place
-        standings.append(person)
-    return standings
+    return assign_ladder(people.values())
 
 
 def summarize(snapshot, now=None):

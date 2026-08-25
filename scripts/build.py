@@ -10,6 +10,7 @@ from urllib.parse import quote
 
 from achievements import CATALOG, CATALOG_LABELS
 from areas import AREA_LABELS, AREA_ORDER
+from ranks import load as load_ranks
 from seasons import current as current_season
 from summarize import WINDOWS, summarize
 
@@ -177,7 +178,7 @@ def write_home(snapshot, summary):
     <h2>Merges by week</h2>
     {week_table(facts["weekly"])}
     {frag_block}
-    <p><a href="people.html">People, by share of achievements</a></p>
+    <p><a href="people.html">Beta ladder</a></p>
 """
     (SITE / "index.html").write_text(page("Omarchy Quattro Arena", body, root="."))
 
@@ -185,37 +186,33 @@ def write_home(snapshot, summary):
 def write_people(summary):
     rows = []
     for person in summary["standings"]:
-        ach = person["achievements"]
+        placing = person.get("season", {}).get("placing")
+        mark = ' <span class="placing">placing</span>' if placing else ""
         rows.append(
             "<tr>"
             f'<td>{person["rank"]}</td>'
-            f'<th scope="row"><a href="{person_href(person["login"], ".")}">{escape(person["login"])}</a></th>'
-            f'<td>{ach["earned"]} / {ach["total"]}</td>'
-            f'<td>{ach["percent"]}%</td>'
-            f'<td>{len(person["prs"])}</td>'
+            f'<th scope="row"><a href="{person_href(person["login"], ".")}">{escape(person["login"])}</a>{mark}</th>'
+            f'<td>{escape(person.get("tier_label", ""))}</td>'
             f'<td>{person.get("season", {}).get("points", 0)}</td>'
+            f'<td>{person.get("season", {}).get("event_count", 0)}</td>'
             f'<td>{person.get("lifetime_points", 0)}</td>'
             "</tr>"
         )
-    catalog = "".join(
-        f"<li><code>{escape(aid)}</code> — {escape(label)}</li>"
-        for aid, label in CATALOG
-    )
-    body = f"""    <h1>People</h1>
-    <p>Order is share of achievements earned, not number of pull requests.
-    Breadth across the tree counts; a pile of merges in one folder does not fill the catalog.</p>
+    body = f"""    <h1>Beta ladder</h1>
+    <p>Order is seasonal score. Placing until 10 season merges and 14 days in.
+    Achievement catalog stays on the person page; it is not the sort.</p>
     <table>
       <thead>
-        <tr><th>#</th><th>Login</th><th>Achievements</th><th>Share</th><th>Merges</th><th>Beta</th><th>Lifetime</th></tr>
+        <tr><th>#</th><th>Login</th><th>Tier</th><th>Beta</th><th>Merges</th><th>Lifetime</th></tr>
       </thead>
       <tbody>
 {chr(10).join("        " + row for row in rows)}
       </tbody>
     </table>
-    <h2>The catalog</h2>
-    <ul class="catalog">{catalog}</ul>
 """
-    (SITE / "people.html").write_text(page("People — Omarchy Quattro Arena", body, root="."))
+    (SITE / "people.html").write_text(
+        page("Beta ladder — Omarchy Quattro Arena", body, root=".")
+    )
 
 
 def write_area(area, summary):
@@ -223,7 +220,7 @@ def write_area(area, summary):
     prs = summary["area_prs"].get(area, [])
     extra = summary["area_extra"].get(area, {})
     counts = {}
-    for person in summary["standings"]:
+    for person in summary["people"].values():
         n = person["area_counts"].get(area, 0)
         if n:
             counts[person["login"]] = n
@@ -276,7 +273,15 @@ def write_person(person):
         for aid, _ in CATALOG
     )
     active = "yes" if person["still_active"] else "no"
-    placing = " (placing)" if person.get("season", {}).get("placing") else ""
+    season = person.get("season") or {}
+    placing = " placing" if season.get("placing") else ""
+    if person.get("rank"):
+        standing = (
+            f'Beta #{person["rank"]} {escape(person.get("tier_label", ""))} '
+            f'{season.get("points", 0)}{placing}'
+        )
+    else:
+        standing = "No Beta merges yet"
     log_rows = []
     for event in person.get("combat_log") or []:
         frag = (
@@ -299,8 +304,9 @@ def write_person(person):
         else "<p>No scored merges yet.</p>"
     )
     body = f"""    <h1>{escape(login)}</h1>
-    <p>Rank {person["rank"]} by achievement share ({ach["percent"]}% · {ach["earned"]} of {ach["total"]}).
-    {len(person["prs"])} merges · Beta {person.get("season", {}).get("points", 0)}{placing} · {person.get("lifetime_points", 0)} lifetime.
+    <p>{standing}.
+    {len(person["prs"])} merges · {person.get("lifetime_points", 0)} lifetime.
+    Catalog {ach["percent"]}% ({ach["earned"]} of {ach["total"]}).
     First {escape(person["first_merged_at"][:10])}, last {escape(person["last_merged_at"][:10])}.
     Active in the last 90 days: {active}.</p>
     <h2>Achievements</h2>
@@ -322,6 +328,9 @@ def write_person(person):
 
 def write_methodology(snapshot):
     season = current_season()
+    ranks = load_ranks()
+    floors = ranks["absolute"]
+    cuts = ranks["percentile"]
     catalog = "".join(
         f"<li><strong>{escape(label)}</strong> (<code>{escape(aid)}</code>)</li>"
         for aid, label in CATALOG
@@ -337,13 +346,14 @@ def write_methodology(snapshot):
       <li><strong>Still merging</strong> — of logins who merged in the previous 90 days, how many also merged in the last 90.</li>
       <li><strong>Median days open</strong> — middle time from opening a PR to merge. How the pipe is moving.</li>
       <li><strong>Pipe</strong> — currently open PRs, merges in 90 days, and PRs closed without merge in 90 days. Opening is not credit.</li>
-      <li><strong>Achievements</strong> — facts about landed work. Rank on the people page is share of this catalog, so spreading across the tree beats repeating one folder.</li>
+      <li><strong>Achievements</strong> — facts about landed work, shown on the person page. Spreading across the tree fills the catalog. It is not the ladder sort.</li>
       <li><strong>Points</strong> — each merged PR scores <code>(area base + 2 × extra areas) × size × week</code>.
         Area base is 10 for shell/commands/hyprland/install/migrations, 8 for agent-skill/applications/systemd, 6 for themes/tests/docs/manual/config, 3 for other.
         Size is 0.6 for one file, 1.0 for 2–8 files, 1.15 for 9+.
         In a given week the 1st merge is full value, then 0.85, 0.70, … never below 0.25. Extra work still counts.</li>
       <li><strong>Frags</strong> — 2+ merges by the same login in 24 hours: Double Kill, Triple Kill, Multi Kill, Mega Kill, Monster Kill, Ultra Kill, Godlike. The home kill feed is those callouts from the last 7 days.</li>
       <li><strong>{escape(season["name"])} season</strong> — {escape(season["start"])} through {escape(season["end"])}. Seasonal points are merges in that window. After 21 days with no merge, seasonal score eases toward 40% of its raw value; it does not fall to zero. Placing while you have fewer than 10 season merges and have been in the season under 14 days.</li>
+      <li><strong>Ladder</strong> — people with at least one season merge, ordered by seasonal score. Newcomer / Contributor / Active are point floors ({floors["contributor"]} / {floors["active"]}). Core / Elite / Legend / Omakase are the top {cuts["core"]} / {cuts["elite"]} / {cuts["legend"]} / {cuts["omakase"]} percent of that pool, and only if already Active. Peak this rebuild is the current tier; we do not yet keep a history across nights.</li>
     </ul>
     <h2>Achievement catalog</h2>
     <ul class="catalog">{catalog}</ul>
@@ -398,6 +408,7 @@ ul.achievements li.missing { color: var(--muted); }
 .frag { font-weight: 700; color: #9a3412; margin-right: 0.35rem; }
 .pts { color: var(--muted); font-variant-numeric: tabular-nums; }
 ul.frags { list-style: none; padding: 0; }
+.placing { color: var(--muted); font-style: italic; font-weight: normal; }
 """
     )
 

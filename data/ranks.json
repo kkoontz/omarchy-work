@@ -1,0 +1,30 @@
+{
+  "order": [
+    "newcomer",
+    "contributor",
+    "active",
+    "core",
+    "elite",
+    "legend",
+    "omakase"
+  ],
+  "labels": {
+    "newcomer": "Newcomer",
+    "contributor": "Contributor",
+    "active": "Active",
+    "core": "Core",
+    "elite": "Elite",
+    "legend": "Legend",
+    "omakase": "Omakase"
+  },
+  "absolute": {
+    "contributor": 20,
+    "active": 40
+  },
+  "percentile": {
+    "core": 50,
+    "elite": 25,
+    "legend": 10,
+    "omakase": 5
+  }
+}
