@@ -1,10 +1,14 @@
 """Season tiers from points and standing among people who merged this season."""
 
 import json
+import os
+import urllib.request
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 RANKS_PATH = ROOT / "data" / "ranks.json"
+PEAKS_PATH = ROOT / "data" / "peaks.json"
+DEFAULT_PEAKS_URL = "https://kkoontz.github.io/omarchy-work/peaks.json"
 
 
 def load():
@@ -95,3 +99,40 @@ def assign(people, config=None, peaks=None):
         person["peak_tier"] = peak
         person["peak_label"] = config["labels"][peak]
     return active
+
+
+def _read_peaks_payload(path, url):
+    if path.exists():
+        return json.loads(path.read_text())
+    if not url:
+        return {}
+    try:
+        with urllib.request.urlopen(url, timeout=8) as resp:
+            return json.loads(resp.read().decode())
+    except (OSError, ValueError):
+        return {}
+
+
+def load_peaks(season_id, path=None, url=None):
+    """Return (archive, this season's login→tier). Reads a local file, else URL."""
+    path = path or PEAKS_PATH
+    if url is None:
+        url = os.environ.get("PEAKS_URL")
+    archive = _read_peaks_payload(path, url)
+    if not isinstance(archive, dict):
+        return {}, {}
+    season = archive.get(season_id)
+    if isinstance(season, dict):
+        return archive, season
+    return archive, {}
+
+
+def merge_peaks(archive, season_id, people):
+    archive = dict(archive or {})
+    season = dict(archive.get(season_id) or {})
+    for person in people:
+        peak = person.get("peak_tier")
+        if peak:
+            season[person["login"]] = peak
+    archive[season_id] = season
+    return archive

@@ -36,6 +36,7 @@ jobs:
           python3 scripts/test_ranks.py
           python3 scripts/test_classes.py
           python3 scripts/collect.py
+          curl -fsS -o data/peaks.json https://kkoontz.github.io/omarchy-work/peaks.json || true
           python3 scripts/build.py
       - uses: actions/upload-pages-artifact@v3
         with:

@@ -3,4 +3,5 @@ __pycache__/
 .venv/
 site/
 data/snapshot.json
+data/peaks.json
 .env

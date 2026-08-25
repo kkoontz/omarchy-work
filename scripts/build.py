@@ -63,6 +63,7 @@ def page(title, body, root="."):
     · {season_line}</p>
     <nav>
       <a href="{root}/index.html">Ladder</a>
+      <a href="{root}/lifetime.html">Lifetime</a>
       <a href="{root}/areas.html">Areas</a>
       <a href="{root}/classes.html">Categories</a>
       <a href="{root}/methodology.html">How we count</a>
@@ -157,7 +158,7 @@ def write_home(snapshot, summary):
       </tbody>
     </table>
     {frag_block}
-    <p class="meta"><a href="areas.html">Areas</a> · <a href="classes.html">Categories</a></p>
+    <p class="meta"><a href="lifetime.html">Lifetime</a> · <a href="areas.html">Areas</a> · <a href="classes.html">Categories</a></p>
 """
     (SITE / "index.html").write_text(page("Omarchy Quattro Arena", body, root="."))
 
@@ -223,6 +224,33 @@ def write_areas(snapshot, summary):
 """
     (SITE / "areas.html").write_text(
         page("Areas — Omarchy Quattro Arena", body, root=".")
+    )
+
+
+def write_lifetime(summary):
+    rows = []
+    for person in summary.get("lifetime") or []:
+        rows.append(
+            "<tr>"
+            f'<td>{person.get("lifetime_rank", "")}</td>'
+            f'<th scope="row"><a href="{person_href(person["login"], ".")}">{escape(person["login"])}</a></th>'
+            f'<td>{person.get("lifetime_points", 0)}</td>'
+            f'<td>{len(person.get("prs") or [])}</td>'
+            "</tr>"
+        )
+    body = f"""    <h1>Lifetime</h1>
+    <p>All-time score from merged work. Not the Beta ladder.</p>
+    <table class="ladder">
+      <thead>
+        <tr><th>#</th><th>Login</th><th>Lifetime</th><th>Merges</th></tr>
+      </thead>
+      <tbody>
+{chr(10).join("        " + row for row in rows)}
+      </tbody>
+    </table>
+"""
+    (SITE / "lifetime.html").write_text(
+        page("Lifetime — Omarchy Quattro Arena", body, root=".")
     )
 
 
@@ -347,6 +375,9 @@ def person_sheet(person):
     rows = []
     if info.get("secondary_label"):
         rows.append(sheet_row("Also", escape(info["secondary_label"])))
+    peak_label = person.get("peak_label")
+    if peak_label and person.get("peak_tier") and person.get("peak_tier") != person.get("tier"):
+        rows.append(sheet_row("Peak", escape(peak_label)))
     rows += [
         sheet_row("Beta", beta),
         sheet_row("Lifetime", str(person.get("lifetime_points", 0))),
@@ -536,7 +567,8 @@ def write_methodology(snapshot):
         In a given week the 1st merge is full value, then 0.85, 0.70, … never below 0.25. Extra work still counts.</li>
       <li><strong>Frags</strong> — 2+ merges by the same login in 24 hours: Double Kill, Triple Kill, Multi Kill, Mega Kill, Monster Kill, Ultra Kill, Godlike. The home kill feed is those callouts from the last 7 days.</li>
       <li><strong>{escape(season["name"])} season</strong> — {escape(season["start"])} through {escape(season["end"])}. Seasonal points are merges in that window. After 21 days with no merge, seasonal score eases toward 40% of its raw value; it does not fall to zero. Placing while you have fewer than 10 season merges and have been in the season under 14 days.</li>
-      <li><strong>Ladder</strong> — the home page. People with at least one season merge, ordered by seasonal score. Newcomer / Contributor / Active are point floors ({floors["contributor"]} / {floors["active"]}). Core / Elite / Legend / Omakase are the top {cuts["core"]} / {cuts["elite"]} / {cuts["legend"]} / {cuts["omakase"]} percent of that pool, and only if already Active. Logins listed as bots in <code>data/ranks.json</code> still score and still place; they stop at Active and do not take percentile tiers.</li>
+      <li><strong>Ladder</strong> — the home page. People with at least one season merge, ordered by seasonal score. Newcomer / Contributor / Active are point floors ({floors["contributor"]} / {floors["active"]}). Core / Elite / Legend / Omakase are the top {cuts["core"]} / {cuts["elite"]} / {cuts["legend"]} / {cuts["omakase"]} percent of that pool, and only if already Active. Logins listed as bots in <code>data/ranks.json</code> still score and still place; they stop at Active and do not take percentile tiers. Peak tier is kept across nightly rebuilds in <code>peaks.json</code>.</li>
+      <li><strong>Lifetime</strong> — a second board of all-time score. It does not reset with the season.</li>
       <li><strong>Person page</strong> — a sheet: class, place, tier, scores, catalog, areas, combat log.</li>
       <li><strong>Class</strong> — on the person page, not the overall ladder. Names: {class_bits}. Taken from this season’s scored areas (lifetime mix if they have no season merge). A merge that touches several areas splits its points among them. Secondary if a second bucket is at least {int(jobs["secondary_share"] * 100)}% of classified points.</li>
       <li><strong>Category ladders</strong> — a season board per class (primary mix) and per area (points from merges that touched that folder, split across areas on the same merge).</li>
@@ -636,8 +668,10 @@ def main():
     SITE.mkdir(parents=True, exist_ok=True)
     write_css()
     write_home(snapshot, summary)
+    write_lifetime(summary)
     write_areas(snapshot, summary)
     write_people_redirect()
+    (SITE / "peaks.json").write_text(json.dumps(summary.get("peaks") or {}, indent=2) + "\n")
     write_classes_index(summary)
     for class_id, group in (summary.get("class_boards") or {}).items():
         write_class_board(class_id, group)

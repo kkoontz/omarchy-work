@@ -11,6 +11,8 @@ from classes import area_points
 from classes import for_person as classify_person
 from classes import load as load_classes
 from ranks import assign as assign_ladder
+from ranks import load_peaks
+from ranks import merge_peaks
 from scoring import score_events
 from seasons import current as current_season
 from seasons import in_season
@@ -195,8 +197,29 @@ def recent_frags(people, now, days=7):
     return hits[:20]
 
 
-def rank_people(people):
-    return assign_ladder(people.values())
+def rank_people(people, season=None):
+    season = season or current_season()
+    archive, prior = load_peaks(season["id"])
+    ladder = assign_ladder(people.values(), peaks=prior)
+    return ladder, merge_peaks(archive, season["id"], ladder)
+
+
+def rank_lifetime(people):
+    ordered = sorted(
+        [person for person in people.values() if person.get("lifetime_points", 0) > 0],
+        key=lambda person: (-person["lifetime_points"], person["login"].lower()),
+    )
+    last_points = None
+    place = 0
+    shown = 0
+    for person in ordered:
+        shown += 1
+        pts = person["lifetime_points"]
+        if pts != last_points:
+            place = shown
+            last_points = pts
+        person["lifetime_rank"] = place
+    return ordered
 
 
 def class_boards(people, config=None):
@@ -253,8 +276,9 @@ def summarize(snapshot, now=None):
                     area_counts.setdefault(area, {k: 0 for k in WINDOWS})
                     area_counts[area][key] += 1
     people = build_people(prs, now)
-    standings = rank_people(people)
     season = current_season()
+    standings, peaks = rank_people(people, season)
+    lifetime = rank_lifetime(people)
     window_prs = {
         key: prs_in_window(prs, now, delta) for key, delta in WINDOWS.items()
     }
@@ -289,6 +313,8 @@ def summarize(snapshot, now=None):
         "area_extra": area_extra,
         "people": people,
         "standings": standings,
+        "lifetime": lifetime,
+        "peaks": peaks,
         "class_boards": class_boards(people),
         "area_season": area_season_boards(people, season),
         "facts": facts,

@@ -1,10 +1,13 @@
 #!/usr/bin/env python3
 import unittest
+from pathlib import Path
 
 from ranks import (
     absolute_tier,
     assign,
     higher_tier,
+    load_peaks,
+    merge_peaks,
     percentile_tier,
     season_tier,
     top_percent,
@@ -115,6 +118,19 @@ class Ladder(unittest.TestCase):
         bot = next(person for person in ladder if person["login"] == "omarchybot")
         self.assertEqual(bot["rank"], 1)
         self.assertEqual(bot["tier"], "active")
+
+
+class Peaks(unittest.TestCase):
+    def test_merge_keeps_the_season(self):
+        people = [player("hero", 40)]
+        ladder = assign(people, config=CONFIG, peaks={"hero": "omakase"})
+        archive = merge_peaks({}, "beta", ladder)
+        self.assertEqual(archive["beta"]["hero"], "omakase")
+
+    def test_load_missing_file(self):
+        archive, season = load_peaks("beta", path=Path("/no/such/peaks.json"), url="")
+        self.assertEqual(archive, {})
+        self.assertEqual(season, {})
 
 
 if __name__ == "__main__":
