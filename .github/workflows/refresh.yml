@@ -30,6 +30,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           python3 scripts/test_areas.py
+          python3 scripts/test_summarize.py
           python3 scripts/collect.py
           python3 scripts/build.py
       - uses: actions/upload-pages-artifact@v3

@@ -5,22 +5,16 @@ from __future__ import annotations
 
 import html
 import json
-from collections import defaultdict
-from datetime import datetime, timezone, timedelta
 from pathlib import Path
 from urllib.parse import quote
 
+from achievements import CATALOG, CATALOG_LABELS
 from areas import AREA_LABELS, AREA_ORDER
+from summarize import WINDOWS, summarize
 
 ROOT = Path(__file__).resolve().parent.parent
 SNAPSHOT = ROOT / "data" / "snapshot.json"
 SITE = ROOT / "site"
-
-WINDOWS = {
-    "30d": timedelta(days=30),
-    "90d": timedelta(days=90),
-    "all": None,
-}
 
 
 def load_snapshot():
@@ -29,66 +23,16 @@ def load_snapshot():
     return json.loads(SNAPSHOT.read_text())
 
 
-def parse_time(stamp):
-    return datetime.strptime(stamp, "%Y-%m-%dT%H:%M:%SZ").replace(
-        tzinfo=timezone.utc
-    )
-
-
-def in_window(merged_at, now, delta):
-    if delta is None:
-        return True
-    return parse_time(merged_at) >= now - delta
-
-
-def summarize(snapshot):
-    now = datetime.now(timezone.utc)
-    prs = snapshot["prs"]
-    area_counts = {
-        area: {key: 0 for key in WINDOWS} for area in AREA_ORDER
-    }
-    area_prs = defaultdict(list)
-    people = {}
-    for pr in prs:
-        for area in pr["areas"]:
-            area_prs[area].append(pr)
-            for key, delta in WINDOWS.items():
-                if in_window(pr["merged_at"], now, delta):
-                    area_counts.setdefault(area, {k: 0 for k in WINDOWS})
-                    area_counts[area][key] += 1
-        login = pr["author"]
-        person = people.setdefault(
-            login,
-            {
-                "login": login,
-                "prs": [],
-                "areas": set(),
-                "first_merged_at": pr["merged_at"],
-                "last_merged_at": pr["merged_at"],
-            },
-        )
-        person["prs"].append(pr)
-        person["areas"].update(pr["areas"])
-        if pr["merged_at"] < person["first_merged_at"]:
-            person["first_merged_at"] = pr["merged_at"]
-        if pr["merged_at"] > person["last_merged_at"]:
-            person["last_merged_at"] = pr["merged_at"]
-    for person in people.values():
-        person["areas"] = sorted(
-            person["areas"], key=lambda area: AREA_ORDER.index(area)
-            if area in AREA_ORDER
-            else 99
-        )
-        person["prs"].sort(key=lambda item: item["merged_at"], reverse=True)
-    return area_counts, area_prs, people
-
-
 def escape(text):
     return html.escape(str(text), quote=True)
 
 
-def person_href(login):
-    return f"../person/{quote(login, safe='')}.html"
+def person_href(login, root=".."):
+    return f"{root}/person/{quote(login, safe='')}.html"
+
+
+def area_href(area, root=".."):
+    return f"{root}/area/{escape(area)}.html"
 
 
 def page(title, body, root="."):
@@ -103,28 +47,32 @@ def page(title, body, root="."):
 <body>
   <header>
     <p class="mark"><a href="{root}/index.html">Omarchy work map</a></p>
-    <p class="sub">Merged labor on <a href="https://github.com/basecamp/omarchy">basecamp/omarchy</a>. Unofficial.</p>
+    <p class="sub">Merged work on <a href="https://github.com/basecamp/omarchy">basecamp/omarchy</a></p>
+    <nav>
+      <a href="{root}/index.html">Areas</a>
+      <a href="{root}/people.html">People</a>
+      <a href="{root}/methodology.html">How we count</a>
+    </nav>
   </header>
   <main>
 {body}
   </main>
   <footer>
-    <p>Unofficial. Not Omacom, not Basecamp. We count merged pull requests only.
-    <a href="{root}/methodology.html">Methodology</a>.</p>
+    <p><a href="{root}/methodology.html">How the numbers work</a></p>
   </footer>
 </body>
 </html>
 """
 
 
-def pr_list(prs, person_links=True):
+def pr_list(prs, person_links=True, root=".."):
     rows = []
     for pr in prs:
         who = escape(pr["author"])
         if person_links:
-            who = f'<a href="{person_href(pr["author"])}">{who}</a>'
+            who = f'<a href="{person_href(pr["author"], root)}">{who}</a>'
         areas = ", ".join(
-            f'<a href="../area/{escape(area)}.html">{escape(AREA_LABELS.get(area, area))}</a>'
+            f'<a href="{area_href(area, root)}">{escape(AREA_LABELS.get(area, area))}</a>'
             for area in pr["areas"]
         )
         day = pr["merged_at"][:10]
@@ -139,10 +87,26 @@ def pr_list(prs, person_links=True):
     return "<ol class=\"prs\">\n" + "\n".join(rows) + "\n</ol>"
 
 
-def write_home(snapshot, area_counts, people):
+def week_table(weekly):
+    rows = "".join(
+        f"<tr><td>{escape(row['week'])}</td><td>{row['merges']}</td></tr>"
+        for row in weekly
+    )
+    return (
+        "<table class=\"weeks\"><thead><tr><th>Week of</th><th>Merges</th></tr></thead>"
+        f"<tbody>{rows}</tbody></table>"
+    )
+
+
+def write_home(snapshot, summary):
+    facts = summary["facts"]
     rows = []
     for area in AREA_ORDER:
-        counts = area_counts.get(area, {key: 0 for key in WINDOWS})
+        counts = summary["area_counts"].get(area, {key: 0 for key in WINDOWS})
+        extra = summary["area_extra"].get(area, {})
+        people_90 = extra.get("unique_people", {}).get("90d", 0)
+        lead = extra.get("median_days_open")
+        lead_cell = "—" if lead is None else f"{lead:.1f}"
         label = AREA_LABELS[area]
         rows.append(
             "<tr>"
@@ -150,40 +114,115 @@ def write_home(snapshot, area_counts, people):
             f'<td>{counts["30d"]}</td>'
             f'<td>{counts["90d"]}</td>'
             f'<td>{counts["all"]}</td>'
+            f"<td>{people_90}</td>"
+            f"<td>{lead_cell}</td>"
             "</tr>"
         )
-    people_links = " ".join(
-        f'<a href="person/{quote(login, safe="")}.html">{escape(login)}</a>'
-        for login in sorted(people, key=str.lower)
-    )
-    body = f"""    <p class="lede">Where merged work landed. Not a scoreboard. Not a grant formula.
-    Counts are merged pull requests on <code>basecamp/omarchy</code>.</p>
+    conc = facts["concentration"]["90d"]
+    ret = facts["retention_90d"]
+    ret_s = "—" if ret["percent"] is None else f"{ret['percent']}%"
+    lead = facts["median_days_open_90d"]
+    lead_s = "—" if lead is None else f"{lead} days"
+    funnel = facts["funnel_90d"]
+    funnel_bits = []
+    if funnel:
+        if "merged_90d" in funnel:
+            funnel_bits.append(f"{funnel['merged_90d']} merged")
+        if "open" in funnel:
+            funnel_bits.append(f"{funnel['open']} still open")
+        if "closed_unmerged_90d" in funnel:
+            funnel_bits.append(f"{funnel['closed_unmerged_90d']} closed unmerged")
+    funnel_line = ", ".join(funnel_bits)
+    body = f"""    <p class="lede">Where work landed on Omarchy. Merged pull requests, by area and by the people who shipped them.</p>
     <p class="meta">Snapshot {escape(snapshot["generated_at"])} · {snapshot["pr_count"]} merged PRs</p>
+    <ul class="facts">
+      <li>People who merged in 30 / 90 days: <strong>{facts["unique_people"]["30d"]}</strong> / <strong>{facts["unique_people"]["90d"]}</strong></li>
+      <li>Last 90 days, share of merges from the busiest 5 logins: <strong>{conc["top5"]}%</strong></li>
+      <li>Of people who merged in the prior 90 days, still merging: <strong>{ret_s}</strong> ({ret["stayed"]} of {ret["prior"]})</li>
+      <li>Median days a merged PR sat open (90 days): <strong>{escape(lead_s)}</strong></li>
+      <li>Pipe, last 90 days: {escape(funnel_line) if funnel_line else "—"}</li>
+    </ul>
     <table>
       <thead>
-        <tr><th>Area</th><th>30 days</th><th>90 days</th><th>All</th></tr>
+        <tr>
+          <th>Area</th><th>30 days</th><th>90 days</th><th>All</th>
+          <th>People (90d)</th><th>Median days open</th>
+        </tr>
       </thead>
       <tbody>
 {chr(10).join("        " + row for row in rows)}
       </tbody>
     </table>
-    <h2>People who landed work</h2>
-    <p class="dir">{people_links}</p>
+    <h2>Merges by week</h2>
+    {week_table(facts["weekly"])}
+    <p><a href="people.html">People, by share of achievements</a></p>
 """
     (SITE / "index.html").write_text(page("Omarchy work map", body, root="."))
 
 
-def write_area(area, prs):
-    label = AREA_LABELS.get(area, area)
-    people = sorted({pr["author"] for pr in prs}, key=str.lower)
-    who = (
-        " ".join(
-            f'<a href="{person_href(login)}">{escape(login)}</a>' for login in people
+def write_people(summary):
+    rows = []
+    for person in summary["standings"]:
+        ach = person["achievements"]
+        rows.append(
+            "<tr>"
+            f'<td>{person["rank"]}</td>'
+            f'<th scope="row"><a href="{person_href(person["login"], ".")}">{escape(person["login"])}</a></th>'
+            f'<td>{ach["earned"]} / {ach["total"]}</td>'
+            f'<td>{ach["percent"]}%</td>'
+            f'<td>{len(person["prs"])}</td>'
+            "</tr>"
         )
-        or "Nobody yet."
+    catalog = "".join(
+        f"<li><code>{escape(aid)}</code> — {escape(label)}</li>"
+        for aid, label in CATALOG
     )
+    body = f"""    <h1>People</h1>
+    <p>Order is share of achievements earned, not number of pull requests.
+    Breadth across the tree counts; a pile of merges in one folder does not fill the catalog.</p>
+    <table>
+      <thead>
+        <tr><th>#</th><th>Login</th><th>Achievements</th><th>Share</th><th>Merges</th></tr>
+      </thead>
+      <tbody>
+{chr(10).join("        " + row for row in rows)}
+      </tbody>
+    </table>
+    <h2>The catalog</h2>
+    <ul class="catalog">{catalog}</ul>
+"""
+    (SITE / "people.html").write_text(page("People — Omarchy work map", body, root="."))
+
+
+def write_area(area, summary):
+    label = AREA_LABELS.get(area, area)
+    prs = summary["area_prs"].get(area, [])
+    extra = summary["area_extra"].get(area, {})
+    counts = {}
+    for person in summary["standings"]:
+        n = person["area_counts"].get(area, 0)
+        if n:
+            counts[person["login"]] = n
+    people_rows = "".join(
+        "<tr>"
+        f'<th scope="row"><a href="{person_href(login)}">{escape(login)}</a></th>'
+        f"<td>{n}</td>"
+        "</tr>"
+        for login, n in sorted(counts.items(), key=lambda item: (-item[1], item[0].lower()))
+    )
+    lead = extra.get("median_days_open")
+    lead_s = "—" if lead is None else f"{lead} days"
+    unique = extra.get("unique_people", {})
     body = f"""    <h1>{escape(label)}</h1>
-    <p>{len(prs)} merged PRs. People: {who}</p>
+    <p>{len(prs)} merged PRs. People in 30 / 90 / all: {unique.get("30d", 0)} / {unique.get("90d", 0)} / {unique.get("all", 0)}. Median days open: {escape(lead_s)}.</p>
+    <h2>People in this area</h2>
+    <table>
+      <thead><tr><th>Login</th><th>Merges here</th></tr></thead>
+      <tbody>{people_rows}</tbody>
+    </table>
+    <h2>Merges by week</h2>
+    {week_table(extra.get("weekly") or [])}
+    <h2>Pull requests</h2>
     {pr_list(prs)}
 """
     directory = SITE / "area"
@@ -195,10 +234,36 @@ def write_area(area, prs):
 
 def write_person(person):
     login = person["login"]
-    facts = ", ".join(AREA_LABELS.get(area, area) for area in person["areas"])
-    first = person["first_merged_at"][:10]
+    ach = person["achievements"]
+    area_rows = "".join(
+        "<tr>"
+        f'<th scope="row"><a href="{area_href(area)}">{escape(AREA_LABELS.get(area, area))}</a></th>'
+        f"<td>{person['area_counts'].get(area, 0)}</td>"
+        "</tr>"
+        for area in person["areas"]
+    )
+    earned = set(ach["ids"])
+    catalog = "".join(
+        "<li class=\"{cls}\">{mark} {label}</li>".format(
+            cls="got" if aid in earned else "missing",
+            mark="✓" if aid in earned else "·",
+            label=escape(CATALOG_LABELS[aid]),
+        )
+        for aid, _ in CATALOG
+    )
+    active = "yes" if person["still_active"] else "no"
     body = f"""    <h1>{escape(login)}</h1>
-    <p>{len(person["prs"])} merged PRs. First landed {escape(first)}. Areas: {escape(facts)}.</p>
+    <p>Rank {person["rank"]} by achievement share ({ach["percent"]}% · {ach["earned"]} of {ach["total"]}).
+    {len(person["prs"])} merges. First {escape(person["first_merged_at"][:10])}, last {escape(person["last_merged_at"][:10])}.
+    Active in the last 90 days: {active}.</p>
+    <h2>Achievements</h2>
+    <ul class="achievements">{catalog}</ul>
+    <h2>Merges by area</h2>
+    <table>
+      <thead><tr><th>Area</th><th>Merges</th></tr></thead>
+      <tbody>{area_rows}</tbody>
+    </table>
+    <h2>Pull requests</h2>
     {pr_list(person["prs"], person_links=False)}
 """
     directory = SITE / "person"
@@ -209,34 +274,29 @@ def write_person(person):
 
 
 def write_methodology(snapshot):
-    body = f"""    <h1>Methodology</h1>
-    <p>This is an unofficial map of merged pull requests on
-    <a href="https://github.com/basecamp/omarchy">basecamp/omarchy</a>.
-    It is not affiliated with the Omacom Foundation or Basecamp.
-    We do not speak for them and we do not allocate their funds.</p>
-    <p>Omacom’s public mandate is to hold trademarks, fund infrastructure,
-    and support the open-source projects Omarchy depends on. This page only
-    shows work that already merged <em>inside</em> the distro repo. That can
-    be useful as a picture of where labor is landing. It is not a grant
-    formula.</p>
-    <h2>What we count</h2>
+    catalog = "".join(
+        f"<li><strong>{escape(label)}</strong> (<code>{escape(aid)}</code>)</li>"
+        for aid, label in CATALOG
+    )
+    body = f"""    <h1>How we count</h1>
+    <p>Source: merged pull requests on
+    <a href="https://github.com/basecamp/omarchy">{escape(snapshot["source"])}</a>.
+    The login on the PR is the person who did the work.</p>
     <ul>
-      <li>Pull requests with state merged, including the GitHub login on the PR.
-      Whether an agent helped is irrelevant. The login did the work.</li>
-      <li>Each merged PR is counted once per area it touched (from changed file
-      paths, first 100 files on the PR). A PR that changes <code>shell/</code>
-      and <code>bin/</code> appears in both.</li>
+      <li><strong>Area counts</strong> — a merge that touches several folders is counted in each of those areas.</li>
+      <li><strong>People (30 / 90)</strong> — distinct logins who merged in that window.</li>
+      <li><strong>Busiest 5</strong> — share of merges in the window from the five logins with the most merges. A thin bench, not a prize.</li>
+      <li><strong>Still merging</strong> — of logins who merged in the previous 90 days, how many also merged in the last 90.</li>
+      <li><strong>Median days open</strong> — middle time from opening a PR to merge. How the pipe is moving.</li>
+      <li><strong>Pipe</strong> — currently open PRs, merges in 90 days, and PRs closed without merge in 90 days. Opening is not credit.</li>
+      <li><strong>Achievements</strong> — facts about landed work. Rank on the people page is share of this catalog, so spreading across the tree beats repeating one folder.</li>
     </ul>
-    <h2>What we do not count</h2>
-    <ul>
-      <li>Opened but unmerged PRs, issues, comments, reactions, stars, or lines of code.</li>
-      <li>Ranks, points, streaks, or participation trophies.</li>
-      <li>Work on Hyprland, Quickshell, or other upstreams. That is out of v1.</li>
-    </ul>
-    <p>Generated {escape(snapshot["generated_at"])} from {escape(snapshot["source"])}.</p>
+    <h2>Achievement catalog</h2>
+    <ul class="catalog">{catalog}</ul>
+    <p>Generated {escape(snapshot["generated_at"])}.</p>
 """
     (SITE / "methodology.html").write_text(
-        page("Methodology — Omarchy work map", body, root=".")
+        page("How we count — Omarchy work map", body, root=".")
     )
 
 
@@ -249,12 +309,13 @@ def write_css():
   --muted: #57534e;
   --line: #d6d3d1;
   --link: #1d4e4f;
+  --got: #3f6212;
 }
 * { box-sizing: border-box; }
 html { font-size: 18px; }
 body {
   margin: 0 auto;
-  max-width: 48rem;
+  max-width: 52rem;
   padding: 2rem 1.25rem 4rem;
   background: var(--paper);
   color: var(--ink);
@@ -262,6 +323,8 @@ body {
   line-height: 1.45;
 }
 header { margin-bottom: 2rem; }
+nav { margin-top: 0.5rem; }
+nav a { margin-right: 1rem; }
 .mark { font-size: 1.15rem; margin: 0; }
 .sub, .meta, footer, .areas { color: var(--muted); font-size: 0.92rem; }
 a { color: var(--link); }
@@ -269,29 +332,35 @@ table { width: 100%; border-collapse: collapse; margin: 1.5rem 0; }
 th, td { text-align: left; padding: 0.4rem 0.5rem; border-bottom: 1px solid var(--line); }
 td { font-variant-numeric: tabular-nums; }
 .lede { font-size: 1.15rem; }
-.dir { line-height: 1.9; }
-.dir a { margin-right: 0.75rem; }
+.facts { padding-left: 1.2rem; }
 ol.prs { padding-left: 1.25rem; }
 ol.prs li { margin: 0.45rem 0; }
 time { font-variant-numeric: tabular-nums; }
 footer { margin-top: 3rem; border-top: 1px solid var(--line); padding-top: 1rem; }
+ul.achievements { list-style: none; padding: 0; }
+ul.achievements li.got { color: var(--got); }
+ul.achievements li.missing { color: var(--muted); }
+.weeks { max-width: 20rem; }
 """
     )
 
 
 def main():
     snapshot = load_snapshot()
-    area_counts, area_prs, people = summarize(snapshot)
+    summary = summarize(snapshot)
     SITE.mkdir(parents=True, exist_ok=True)
     write_css()
-    write_home(snapshot, area_counts, people)
+    write_home(snapshot, summary)
+    write_people(summary)
     for area in AREA_ORDER:
-        write_area(area, area_prs.get(area, []))
-    for person in people.values():
+        write_area(area, summary)
+    for person in summary["people"].values():
         write_person(person)
     write_methodology(snapshot)
     (SITE / "snapshot.json").write_text(json.dumps(snapshot))
-    print(f"wrote site/ ({len(people)} people, {snapshot['pr_count']} PRs)")
+    print(
+        f"wrote site/ ({len(summary['people'])} people, {snapshot['pr_count']} PRs)"
+    )
 
 
 if __name__ == "__main__":

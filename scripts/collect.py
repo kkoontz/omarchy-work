@@ -9,7 +9,7 @@ import subprocess
 import sys
 import urllib.error
 import urllib.request
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 from pathlib import Path
 
 from areas import areas_for_paths
@@ -34,6 +34,7 @@ query($owner: String!, $name: String!, $cursor: String) {
         number
         title
         url
+        createdAt
         mergedAt
         author { login }
         files(first: 100) {
@@ -94,8 +95,10 @@ def record_from_node(node):
         "number": node["number"],
         "title": node["title"],
         "url": node["url"],
+        "created_at": node.get("createdAt"),
         "merged_at": node["mergedAt"],
         "author": author,
+        "paths": paths,
         "areas": areas_for_paths(paths),
     }
 
@@ -123,13 +126,52 @@ def collect_merged_prs(token):
     return records
 
 
+FUNNEL_QUERY = """
+query($openQ: String!, $closedQ: String!) {
+  open: search(query: $openQ, type: ISSUE, first: 1) { issueCount }
+  closed: search(query: $closedQ, type: ISSUE, first: 1) { issueCount }
+}
+"""
+
+
+def collect_funnel(token, now):
+    start = (now - timedelta(days=90)).strftime("%Y-%m-%d")
+    data = graphql(
+        token,
+        FUNNEL_QUERY,
+        {
+            "openQ": f"repo:{OWNER}/{REPO} is:pr is:open",
+            "closedQ": (
+                f"repo:{OWNER}/{REPO} is:pr is:unmerged is:closed "
+                f"updated:>={start}"
+            ),
+        },
+    )
+    return {
+        "open": data["open"]["issueCount"],
+        "closed_unmerged_90d": data["closed"]["issueCount"],
+    }
+
+
 def main():
     token = github_token()
+    now = datetime.now(timezone.utc)
     records = collect_merged_prs(token)
+    merged_90d = sum(
+        1
+        for pr in records
+        if datetime.strptime(pr["merged_at"], "%Y-%m-%dT%H:%M:%SZ").replace(
+            tzinfo=timezone.utc
+        )
+        >= now - timedelta(days=90)
+    )
+    funnel = collect_funnel(token, now)
+    funnel["merged_90d"] = merged_90d
     snapshot = {
-        "generated_at": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
+        "generated_at": now.strftime("%Y-%m-%dT%H:%M:%SZ"),
         "source": f"{OWNER}/{REPO}",
         "pr_count": len(records),
+        "funnel_90d": funnel,
         "prs": records,
     }
     OUT.parent.mkdir(parents=True, exist_ok=True)

@@ -1,15 +1,14 @@
 # Omarchy work map
 
-Unofficial record of **merged** pull requests on [`basecamp/omarchy`](https://github.com/basecamp/omarchy).
+Merged work on [`basecamp/omarchy`](https://github.com/basecamp/omarchy): by area, by login, by what actually landed.
 
-Not a leaderboard. Not Omacom. Not a grant formula. A picture of where labor landed, so the work is visible. Whether that is useful is for other people to decide.
-
-The [Omacom Foundation](https://omarchy.org/news/2026/08/omacom-foundation-launches-with-8-million) funds infrastructure and the open-source projects Omarchy depends on. This map only shows merges **inside** the distro repo.
+Live: https://kkoontz.github.io/omarchy-work/
 
 ## Run locally
 
 ```bash
 python3 scripts/test_areas.py
+python3 scripts/test_summarize.py
 GITHUB_TOKEN=$(gh auth token) python3 scripts/collect.py
 python3 scripts/build.py
 python3 -m http.server -d site 8000
@@ -17,10 +16,6 @@ python3 -m http.server -d site 8000
 
 Open http://127.0.0.1:8000
 
-## What we count
+## How we count
 
-Merged PRs, attributed to the GitHub login on the PR. File paths bucket the PR into areas (shell, commands, agent skill, …). See `site/methodology.html` after a build.
-
-## Hosting
-
-GitHub Pages, rebuilt nightly by Actions.
+See the site’s [How we count](https://kkoontz.github.io/omarchy-work/methodology.html) page. Credit is merged PRs. People are ordered by share of a fixed achievement catalog (breadth across the tree), not by raw PR volume. GitHub Actions rebuilds nightly.
