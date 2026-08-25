@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import html
 import json
+import shutil
 from pathlib import Path
 from urllib.parse import quote
 
@@ -18,6 +19,7 @@ from summarize import WINDOWS, summarize
 ROOT = Path(__file__).resolve().parent.parent
 SNAPSHOT = ROOT / "data" / "snapshot.json"
 SITE = ROOT / "site"
+FONTS = ROOT / "assets" / "fonts"
 
 
 def load_snapshot():
@@ -582,51 +584,100 @@ def write_methodology(snapshot):
     )
 
 
+def copy_fonts():
+    dest = SITE / "fonts"
+    dest.mkdir(parents=True, exist_ok=True)
+    for path in FONTS.glob("*.woff2"):
+        shutil.copy2(path, dest / path.name)
+
+
 def write_css():
+    copy_fonts()
     (SITE / "style.css").write_text(
         """
+@font-face {
+  font-display: swap;
+  font-family: "JetBrains Mono";
+  font-style: normal;
+  font-weight: 300;
+  src: url("fonts/JetBrainsMono-Light.woff2") format("woff2");
+}
+@font-face {
+  font-display: swap;
+  font-family: "JetBrains Mono";
+  font-style: italic;
+  font-weight: 400;
+  src: url("fonts/JetBrainsMono-Italic.woff2") format("woff2");
+}
+@font-face {
+  font-display: swap;
+  font-family: "JetBrains Mono";
+  font-style: normal;
+  font-weight: 400;
+  src: url("fonts/JetBrainsMono-Regular.woff2") format("woff2");
+}
+@font-face {
+  font-display: swap;
+  font-family: "JetBrains Mono";
+  font-style: normal;
+  font-weight: 700;
+  src: url("fonts/JetBrainsMono-Bold.woff2") format("woff2");
+}
 :root {
-  --ink: #e6e2d8;
-  --paper: #0e1012;
-  --muted: #8b8680;
-  --line: #2c3034;
-  --link: #6ee7d8;
-  --got: #b4e645;
-  --frag: #ff8a4c;
+  --rgb-background-night: 26, 27, 38;
+  --rgb-green: 158, 206, 106;
+  --rgb-terminal-black: 65, 72, 104;
+  --rgb-terminal-blue: 122, 162, 247;
+  --rgb-terminal-cyan: 125, 207, 255;
+  --rgb-terminal-white: 192, 202, 245;
+  --rgb-turquoise: 180, 249, 248;
+  --rgb-white: 255, 255, 255;
+  --paper: rgb(var(--rgb-background-night));
+  --ink: rgb(var(--rgb-terminal-blue));
+  --muted: rgb(var(--rgb-terminal-black));
+  --line: rgb(var(--rgb-terminal-black) / 0.8);
+  --link: rgb(var(--rgb-terminal-cyan));
+  --got: rgb(var(--rgb-green));
+  --frag: rgb(var(--rgb-green));
+  --hover: rgb(var(--rgb-white));
+  --font-family: "JetBrains Mono", "JetBrainsMono Nerd Font", ui-monospace, monospace;
+  --transition: 0.15s cubic-bezier(0.33, 1, 0.68, 1);
 }
 * { box-sizing: border-box; }
-html { font-size: 17px; }
+html { font-size: 16px; color-scheme: dark; }
 body {
   margin: 0 auto;
   max-width: 56rem;
   padding: 2rem 1.25rem 4rem;
   background: var(--paper);
   color: var(--ink);
-  font-family: "Segoe UI", system-ui, sans-serif;
-  line-height: 1.45;
+  font-family: var(--font-family);
+  font-weight: 300;
+  line-height: 1.4;
 }
 header {
   margin-bottom: 2rem;
   padding-bottom: 1rem;
-  border-bottom: 1px solid var(--line);
+  border-bottom: var(--line) 1px solid;
 }
 nav { margin-top: 0.65rem; }
 nav a { margin-right: 1rem; }
-.mark {
-  font-family: ui-monospace, "JetBrains Mono", "Cascadia Mono", monospace;
-  font-size: 0.92rem;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  margin: 0;
+.mark { font-size: 1rem; font-weight: 700; margin: 0; }
+.sub, .meta, footer, .areas, .placing { color: rgb(var(--rgb-terminal-white) / 0.55); font-size: 0.92rem; }
+a {
+  color: var(--link);
+  font-weight: 700;
+  text-decoration-thickness: 0.0875em;
+  text-underline-offset: 0.125em;
+  transition: color var(--transition);
 }
-.sub, .meta, footer, .areas { color: var(--muted); font-size: 0.92rem; }
-a { color: var(--link); }
+@media (hover: hover) {
+  a:hover { color: var(--hover); }
+}
 table { width: 100%; border-collapse: collapse; margin: 1.5rem 0; }
 th, td { text-align: left; padding: 0.4rem 0.5rem; border-bottom: 1px solid var(--line); }
-td, time, .pts, dl.sheet dd, .ladder td, .standing {
-  font-variant-numeric: tabular-nums;
-  font-family: ui-monospace, "JetBrains Mono", "Cascadia Mono", monospace;
-}
+th { font-weight: 700; }
+td, time, .pts, dl.sheet dd, .ladder td, .standing { font-variant-numeric: tabular-nums; }
 .lede { font-size: 1.15rem; }
 .facts { padding-left: 1.2rem; }
 ol.prs { padding-left: 1.25rem; }
@@ -634,29 +685,25 @@ ol.prs li { margin: 0.45rem 0; }
 footer { margin-top: 3rem; border-top: 1px solid var(--line); padding-top: 1rem; }
 ul.achievements { list-style: none; padding: 0; }
 ul.achievements li.got { color: var(--got); }
-ul.achievements li.missing { color: var(--muted); }
+ul.achievements li.missing { color: rgb(var(--rgb-terminal-white) / 0.45); }
 .weeks { max-width: 20rem; }
 .frag { font-weight: 700; color: var(--frag); margin-right: 0.35rem; }
-.pts { color: var(--muted); }
+.pts { color: rgb(var(--rgb-terminal-white) / 0.55); }
 ul.frags {
   list-style: none;
   padding: 0 0 0 0.85rem;
-  border-left: 2px solid var(--frag);
+  border-left: 2px solid var(--got);
 }
 ul.frags li { margin: 0.35rem 0; }
-.placing { color: var(--muted); font-style: italic; font-weight: normal; font-family: inherit; }
-.standing { font-size: 1.15rem; margin: 0.35rem 0 1rem; }
+.placing { font-style: italic; font-weight: 300; }
+.standing { font-size: 1.15rem; font-weight: 700; margin: 0.35rem 0 1rem; }
 dl.sheet {
   display: grid;
   grid-template-columns: 7rem 1fr;
   gap: 0.2rem 1rem;
   margin: 1rem 0 1.75rem;
 }
-dl.sheet dt {
-  color: var(--muted);
-  margin: 0;
-  font-family: "Segoe UI", system-ui, sans-serif;
-}
+dl.sheet dt { color: rgb(var(--rgb-terminal-white) / 0.55); margin: 0; font-weight: 300; }
 dl.sheet dd { margin: 0; }
 """
     )
