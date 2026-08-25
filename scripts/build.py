@@ -36,6 +36,19 @@ def person_href(login, root=".."):
     return f"{root}/person/{quote(login, safe='')}.html"
 
 
+def github_avatar(login, size=40):
+    return f"https://github.com/{quote(login, safe='')}.png?size={size}"
+
+
+def who_html(login, root="..", extra=""):
+    src = escape(github_avatar(login))
+    return (
+        f'<a class="who" href="{person_href(login, root)}">'
+        f'<img class="avatar" src="{src}" alt="" width="24" height="24" loading="lazy">'
+        f"{escape(login)}</a>{extra}"
+    )
+
+
 def area_href(area, root=".."):
     return f"{root}/area/{escape(area)}.html"
 
@@ -87,7 +100,7 @@ def pr_list(prs, person_links=True, root=".."):
     for pr in prs:
         who = escape(pr["author"])
         if person_links:
-            who = f'<a href="{person_href(pr["author"], root)}">{who}</a>'
+            who = who_html(pr["author"], root)
         areas = ", ".join(
             f'<a href="{area_href(area, root)}">{escape(AREA_LABELS.get(area, area))}</a>'
             for area in pr["areas"]
@@ -123,7 +136,7 @@ def beta_ladder_rows(summary, root="."):
         rows.append(
             "<tr>"
             f'<td>{person["rank"]}</td>'
-            f'<th scope="row"><a href="{person_href(person["login"], root)}">{escape(person["login"])}</a>{mark}</th>'
+            f'<th scope="row">{who_html(person["login"], root, extra=mark)}</th>'
             f'<td>{escape(person.get("tier_label", ""))}</td>'
             f'<td>{person.get("season", {}).get("points", 0)}</td>'
             f'<td>{person.get("season", {}).get("event_count", 0)}</td>'
@@ -138,7 +151,7 @@ def write_home(snapshot, summary):
     frag_items = "".join(
         "<li>"
         f'<span class="frag">{escape(hit["frag"])}</span> '
-        f'<a href="{person_href(hit["login"], ".")}">{escape(hit["login"])}</a> '
+        f'{who_html(hit["login"], ".")} '
         f'<a href="{escape(hit["url"])}">#{hit["number"]}</a> '
         f"{escape(hit['title'])}"
         "</li>"
@@ -235,7 +248,7 @@ def write_lifetime(summary):
         rows.append(
             "<tr>"
             f'<td>{person.get("lifetime_rank", "")}</td>'
-            f'<th scope="row"><a href="{person_href(person["login"], ".")}">{escape(person["login"])}</a></th>'
+            f'<th scope="row">{who_html(person["login"], ".")}</th>'
             f'<td>{person.get("lifetime_points", 0)}</td>'
             f'<td>{len(person.get("prs") or [])}</td>'
             "</tr>"
@@ -285,7 +298,7 @@ def write_area(area, summary):
             counts[person["login"]] = n
     people_rows = "".join(
         "<tr>"
-        f'<th scope="row"><a href="{person_href(login)}">{escape(login)}</a></th>'
+        f'<th scope="row">{who_html(login)}</th>'
         f"<td>{n}</td>"
         "</tr>"
         for login, n in sorted(counts.items(), key=lambda item: (-item[1], item[0].lower()))
@@ -310,7 +323,7 @@ def write_area(area, summary):
         season_rows.append(
             "<tr>"
             f"<td>{place}</td>"
-            f'<th scope="row"><a href="{person_href(person["login"])}">{escape(person["login"])}</a>{mark}</th>'
+            f'<th scope="row">{who_html(person["login"], extra=mark)}</th>'
             f'<td>{escape(person.get("tier_label") or "—")}</td>'
             f"<td>{pts}</td>"
             "</tr>"
@@ -375,6 +388,12 @@ def person_sheet(person):
     if decay is not None and decay < 1:
         beta += f' <span class="meta">×{decay}</span>'
     rows = []
+    rows.append(
+        sheet_row(
+            "GitHub",
+            f'<a href="https://github.com/{quote(person["login"], safe="")}">{escape(person["login"])}</a>',
+        )
+    )
     if info.get("secondary_label"):
         rows.append(sheet_row("Also", escape(info["secondary_label"])))
     peak_label = person.get("peak_label")
@@ -446,7 +465,10 @@ def write_person(person):
         if log_rows
         else "<p>No scored merges yet.</p>"
     )
-    body = f"""    <h1>{escape(login)}</h1>
+    body = f"""    <h1 class="identity">
+      <img class="avatar avatar--lg" src="{escape(github_avatar(login, 80))}" alt="" width="40" height="40">
+      {escape(login)}
+    </h1>
     {person_sheet(person)}
     <h2>Catalog</h2>
     <ul class="achievements">{catalog}</ul>
@@ -483,7 +505,7 @@ def write_class_board(class_id, people):
         rows.append(
             "<tr>"
             f"<td>{place}</td>"
-            f'<th scope="row"><a href="{person_href(person["login"])}">{escape(person["login"])}</a>{mark}</th>'
+            f'<th scope="row">{who_html(person["login"], extra=mark)}</th>'
             f'<td>{escape(person.get("tier_label") or "—")}</td>'
             f"<td>{pts}</td>"
             f'<td>{person.get("season", {}).get("event_count", 0)}</td>'
@@ -711,6 +733,19 @@ dl.sheet {
 }
 dl.sheet dt { color: rgb(var(--rgb-terminal-white) / 0.55); margin: 0; font-weight: 300; }
 dl.sheet dd { margin: 0; }
+.avatar {
+  width: 1.25em;
+  height: 1.25em;
+  border-radius: 0.2em;
+  flex-shrink: 0;
+}
+.avatar--lg { width: 1.75em; height: 1.75em; }
+.who, h1.identity {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.55em;
+}
+h1.identity { display: flex; }
 """
     )
 
