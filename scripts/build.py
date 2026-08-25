@@ -128,22 +128,49 @@ def week_table(weekly):
     )
 
 
+def rating_cell(tier, score):
+    bits = []
+    if tier:
+        bits.append(f'<span class="tier">{escape(tier)}</span>')
+    bits.append(f'<span class="score">{score}</span>')
+    return '<td class="rating">' + "".join(bits) + "</td>"
+
+
+def class_cell(person):
+    info = person.get("class") or {}
+    label = info.get("label") or "—"
+    return f'<td class="klass">{escape(label)}</td>'
+
+
+def ladder_table(headers, rows):
+    head = "".join(f"<th>{escape(name)}</th>" for name in headers)
+    body = "\n".join("        " + row for row in rows)
+    if not rows:
+        return "<p>No rows in this board.</p>"
+    return (
+        '<table class="ladder">'
+        f"<thead><tr>{head}</tr></thead>"
+        f"<tbody>\n{body}\n      </tbody></table>"
+    )
+
+
 def beta_ladder_rows(summary, root="."):
     rows = []
     for person in summary["standings"]:
         placing = person.get("season", {}).get("placing")
         mark = ' <span class="placing">placing</span>' if placing else ""
+        season = person.get("season") or {}
         rows.append(
             "<tr>"
-            f'<td>{person["rank"]}</td>'
-            f'<th scope="row">{who_html(person["login"], root, extra=mark)}</th>'
-            f'<td>{escape(person.get("tier_label", ""))}</td>'
-            f'<td>{person.get("season", {}).get("points", 0)}</td>'
-            f'<td>{person.get("season", {}).get("event_count", 0)}</td>'
+            f'<td class="rank">{person["rank"]}</td>'
+            f'{rating_cell(person.get("tier_label"), season.get("points", 0))}'
+            f'<td class="player">{who_html(person["login"], root, extra=mark)}</td>'
+            f"{class_cell(person)}"
+            f'<td>{season.get("event_count", 0)}</td>'
             f'<td>{person.get("lifetime_points", 0)}</td>'
             "</tr>"
         )
-    return "\n".join("        " + row for row in rows)
+    return rows
 
 
 def write_home(snapshot, summary):
@@ -164,14 +191,10 @@ def write_home(snapshot, summary):
     )
     body = f"""    <p class="lede">Beta ladder. Ranked by merged work this season.</p>
     <p class="meta">Snapshot {escape(snapshot["generated_at"])} · {snapshot["pr_count"]} merged PRs · {len(summary["standings"])} on the board</p>
-    <table class="ladder">
-      <thead>
-        <tr><th>#</th><th>Login</th><th>Tier</th><th>Beta</th><th>Merges</th><th>Lifetime</th></tr>
-      </thead>
-      <tbody>
-{beta_ladder_rows(summary, ".")}
-      </tbody>
-    </table>
+    {ladder_table(
+        ("Rank", "Tier/Rating", "Player", "Class", "Merges", "Lifetime"),
+        beta_ladder_rows(summary, "."),
+    )}
     {frag_block}
     <p class="meta"><a href="lifetime.html">Lifetime</a> · <a href="areas.html">Areas</a> · <a href="classes.html">Categories</a></p>
 """
@@ -247,22 +270,16 @@ def write_lifetime(summary):
     for person in summary.get("lifetime") or []:
         rows.append(
             "<tr>"
-            f'<td>{person.get("lifetime_rank", "")}</td>'
-            f'<th scope="row">{who_html(person["login"], ".")}</th>'
-            f'<td>{person.get("lifetime_points", 0)}</td>'
+            f'<td class="rank">{person.get("lifetime_rank", "")}</td>'
+            f'{rating_cell("", person.get("lifetime_points", 0))}'
+            f'<td class="player">{who_html(person["login"], ".")}</td>'
+            f"{class_cell(person)}"
             f'<td>{len(person.get("prs") or [])}</td>'
             "</tr>"
         )
     body = f"""    <h1>Lifetime</h1>
     <p>All-time score from merged work. Not the Beta ladder.</p>
-    <table class="ladder">
-      <thead>
-        <tr><th>#</th><th>Login</th><th>Lifetime</th><th>Merges</th></tr>
-      </thead>
-      <tbody>
-{chr(10).join("        " + row for row in rows)}
-      </tbody>
-    </table>
+    {ladder_table(("Rank", "Rating", "Player", "Class", "Merges"), rows)}
 """
     (SITE / "lifetime.html").write_text(
         page("Lifetime — Omarchy Quattro Arena", body, root=".")
@@ -322,16 +339,14 @@ def write_area(area, summary):
         mark = ' <span class="placing">placing</span>' if placing else ""
         season_rows.append(
             "<tr>"
-            f"<td>{place}</td>"
-            f'<th scope="row">{who_html(person["login"], extra=mark)}</th>'
-            f'<td>{escape(person.get("tier_label") or "—")}</td>'
-            f"<td>{pts}</td>"
+            f'<td class="rank">{place}</td>'
+            f'{rating_cell(person.get("tier_label"), pts)}'
+            f'<td class="player">{who_html(person["login"], extra=mark)}</td>'
+            f"{class_cell(person)}"
             "</tr>"
         )
     season_table = (
-        "<table>"
-        "<thead><tr><th>#</th><th>Login</th><th>Tier</th><th>Here</th></tr></thead>"
-        f"<tbody>{''.join(season_rows)}</tbody></table>"
+        ladder_table(("Rank", "Tier/Rating", "Player", "Class"), season_rows)
         if season_rows
         else "<p>No Beta points in this area yet.</p>"
     )
@@ -504,17 +519,14 @@ def write_class_board(class_id, people):
         mark = ' <span class="placing">placing</span>' if placing else ""
         rows.append(
             "<tr>"
-            f"<td>{place}</td>"
-            f'<th scope="row">{who_html(person["login"], extra=mark)}</th>'
-            f'<td>{escape(person.get("tier_label") or "—")}</td>'
-            f"<td>{pts}</td>"
+            f'<td class="rank">{place}</td>'
+            f'{rating_cell(person.get("tier_label"), pts)}'
+            f'<td class="player">{who_html(person["login"], extra=mark)}</td>'
             f'<td>{person.get("season", {}).get("event_count", 0)}</td>'
             "</tr>"
         )
     table = (
-        "<table>"
-        "<thead><tr><th>#</th><th>Login</th><th>Tier</th><th>Beta</th><th>Merges</th></tr></thead>"
-        f"<tbody>{chr(10).join('        ' + row for row in rows)}</tbody></table>"
+        ladder_table(("Rank", "Tier/Rating", "Player", "Merges"), rows)
         if rows
         else "<p>No Beta merges in this class yet.</p>"
     )
@@ -647,6 +659,7 @@ def write_css():
 }
 :root {
   --rgb-background-night: 26, 27, 38;
+  --rgb-background-storm: 36, 40, 59;
   --rgb-green: 158, 206, 106;
   --rgb-terminal-black: 65, 72, 104;
   --rgb-terminal-blue: 122, 162, 247;
@@ -669,7 +682,7 @@ def write_css():
 html { font-size: 16px; color-scheme: dark; }
 body {
   margin: 0 auto;
-  max-width: 56rem;
+  max-width: 72rem;
   padding: 2rem 1.25rem 4rem;
   background: var(--paper);
   color: var(--ink);
@@ -734,18 +747,34 @@ dl.sheet {
 dl.sheet dt { color: rgb(var(--rgb-terminal-white) / 0.55); margin: 0; font-weight: 300; }
 dl.sheet dd { margin: 0; }
 .avatar {
-  width: 1.25em;
-  height: 1.25em;
-  border-radius: 0.2em;
+  width: 1.75em;
+  height: 1.75em;
+  border-radius: 50%;
   flex-shrink: 0;
 }
-.avatar--lg { width: 1.75em; height: 1.75em; }
+.avatar--lg { width: 2.25em; height: 2.25em; }
 .who, h1.identity {
   display: inline-flex;
   align-items: center;
-  gap: 0.55em;
+  gap: 0.65em;
 }
 h1.identity { display: flex; }
+.ladder .who { text-decoration: none; }
+.ladder td.rank {
+  width: 3.5rem;
+  text-align: center;
+  color: rgb(var(--rgb-terminal-white) / 0.7);
+}
+.ladder .rating .tier {
+  display: block;
+  color: var(--got);
+  font-size: 0.8em;
+  font-weight: 700;
+}
+.ladder .rating .score { display: block; }
+.ladder tbody tr:nth-child(odd) {
+  background: rgb(var(--rgb-background-storm) / 0.55);
+}
 """
     )
 
