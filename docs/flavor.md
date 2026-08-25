@@ -2,11 +2,13 @@
 
 Locked name: **Omarchy Quattro Arena**.
 
-## WoW-leaning classes (planned)
+## WoW-leaning classes (wired)
 
-Code Mage, Review Guardian, Theme Crafter, Plugin Engineer, Docs Sage, Migration Knight, Community Bard.
+Code Mage, Theme Crafter, Plugin Engineer, Docs Sage, Migration Knight.
 
-## Quake-leaning class names (pick or dual-label later)
+Review Guardian and Community Bard wait on review/community events.
+
+## Quake-leaning class names (title, later)
 
 - Railer — one precise shot (docs, small core fixes)
 - Rocket — splash, high impact (shell, install)
@@ -15,7 +17,7 @@ Code Mage, Review Guardian, Theme Crafter, Plugin Engineer, Docs Sage, Migration
 - Shambler — heavy migrations
 - Scout — first-time / placement
 
-A person can show WoW class as identity and Quake name as a title. Do not ship both until classes exist.
+A person can show WoW class as identity and Quake name as a title. WoW is on the ladder; dual-label is next if the mix looks right.
 
 ## Frag callouts (wired on the combat log)
 

@@ -7,9 +7,11 @@ from datetime import datetime, timezone, timedelta
 
 from achievements import score as achievement_score
 from areas import AREA_ORDER
+from classes import for_person as classify_person
 from ranks import assign as assign_ladder
 from scoring import score_events
 from seasons import current as current_season
+from seasons import in_season
 from seasons import season_status
 
 WINDOWS = {
@@ -124,6 +126,7 @@ def lead_times(prs):
 
 
 def build_people(prs, now):
+    season = current_season()
     people = {}
     for pr in prs:
         login = pr["author"]
@@ -160,7 +163,10 @@ def build_people(prs, now):
         events, total = score_events(person["prs"])
         person["combat_log"] = events
         person["lifetime_points"] = total
-        person["season"] = season_status(events, current_season(), now=now)
+        person["season"] = season_status(events, season, now=now)
+        person["class"] = classify_person(
+            person, lambda stamp, window=season: in_season(stamp, window)
+        )
     return people
 
 

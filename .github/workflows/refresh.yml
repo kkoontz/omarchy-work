@@ -34,6 +34,7 @@ jobs:
           python3 scripts/test_seasons.py
           python3 scripts/test_scoring.py
           python3 scripts/test_ranks.py
+          python3 scripts/test_classes.py
           python3 scripts/collect.py
           python3 scripts/build.py
       - uses: actions/upload-pages-artifact@v3

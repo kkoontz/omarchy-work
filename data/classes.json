@@ -1,0 +1,31 @@
+{
+  "secondary_share": 0.3,
+  "order": [
+    "code-mage",
+    "migration-knight",
+    "theme-crafter",
+    "plugin-engineer",
+    "docs-sage"
+  ],
+  "labels": {
+    "code-mage": "Code Mage",
+    "migration-knight": "Migration Knight",
+    "theme-crafter": "Theme Crafter",
+    "plugin-engineer": "Plugin Engineer",
+    "docs-sage": "Docs Sage"
+  },
+  "buckets": {
+    "code-mage": [
+      "commands",
+      "shell",
+      "hyprland",
+      "install",
+      "systemd",
+      "config",
+      "tests"
+    ],
+    "theme-crafter": ["themes"],
+    "plugin-engineer": ["applications", "agent-skill"],
+    "docs-sage": ["manual", "docs"]
+  }
+}
