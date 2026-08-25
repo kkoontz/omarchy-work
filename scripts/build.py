@@ -136,12 +136,6 @@ def rating_cell(tier, score):
     return '<td class="rating">' + "".join(bits) + "</td>"
 
 
-def class_cell(person):
-    info = person.get("class") or {}
-    label = info.get("label") or "—"
-    return f'<td class="klass">{escape(label)}</td>'
-
-
 def ladder_table(headers, rows):
     head = "".join(f"<th>{escape(name)}</th>" for name in headers)
     body = "\n".join("        " + row for row in rows)
@@ -165,7 +159,6 @@ def beta_ladder_rows(summary, root="."):
             f'<td class="rank">{person["rank"]}</td>'
             f'{rating_cell(person.get("tier_label"), season.get("points", 0))}'
             f'<td class="player">{who_html(person["login"], root, extra=mark)}</td>'
-            f"{class_cell(person)}"
             f'<td>{season.get("event_count", 0)}</td>'
             f'<td>{person.get("lifetime_points", 0)}</td>'
             "</tr>"
@@ -192,7 +185,7 @@ def write_home(snapshot, summary):
     body = f"""    <p class="lede">Beta ladder. Ranked by merged work this season.</p>
     <p class="meta">Snapshot {escape(snapshot["generated_at"])} · {snapshot["pr_count"]} merged PRs · {len(summary["standings"])} on the board</p>
     {ladder_table(
-        ("Rank", "Tier/Rating", "Player", "Class", "Merges", "Lifetime"),
+        ("Rank", "Tier/Rating", "Player", "Merges", "Lifetime"),
         beta_ladder_rows(summary, "."),
     )}
     {frag_block}
@@ -273,13 +266,12 @@ def write_lifetime(summary):
             f'<td class="rank">{person.get("lifetime_rank", "")}</td>'
             f'{rating_cell("", person.get("lifetime_points", 0))}'
             f'<td class="player">{who_html(person["login"], ".")}</td>'
-            f"{class_cell(person)}"
             f'<td>{len(person.get("prs") or [])}</td>'
             "</tr>"
         )
     body = f"""    <h1>Lifetime</h1>
     <p>All-time score from merged work. Not the Beta ladder.</p>
-    {ladder_table(("Rank", "Rating", "Player", "Class", "Merges"), rows)}
+    {ladder_table(("Rank", "Rating", "Player", "Merges"), rows)}
 """
     (SITE / "lifetime.html").write_text(
         page("Lifetime — Omarchy Quattro Arena", body, root=".")
@@ -342,11 +334,10 @@ def write_area(area, summary):
             f'<td class="rank">{place}</td>'
             f'{rating_cell(person.get("tier_label"), pts)}'
             f'<td class="player">{who_html(person["login"], extra=mark)}</td>'
-            f"{class_cell(person)}"
             "</tr>"
         )
     season_table = (
-        ladder_table(("Rank", "Tier/Rating", "Player", "Class"), season_rows)
+        ladder_table(("Rank", "Tier/Rating", "Player"), season_rows)
         if season_rows
         else "<p>No Beta points in this area yet.</p>"
     )
