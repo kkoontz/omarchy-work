@@ -1,23 +1,14 @@
-# Arena flavor (not wired yet)
+# Arena flavor
 
 Locked name: **Omarchy Quattro Arena**.
 
-## WoW-leaning classes (wired)
+Ladder is a ranked list: place, tier, score. Not a class table.
 
-Code Mage, Theme Crafter, Plugin Engineer, Docs Sage, Migration Knight.
+## Classes (profile only; placeholder names)
 
-Review Guardian and Community Bard wait on review/community events.
+Desktop, Migrations, Themes, Plugins, Docs.
 
-## Quake-leaning class names (title, later)
-
-- Railer — one precise shot (docs, small core fixes)
-- Rocket — splash, high impact (shell, install)
-- Lightning — fast command/bin work
-- Quad — burst weeks
-- Shambler — heavy migrations
-- Scout — first-time / placement
-
-A person can show WoW class as identity and Quake name as a title. WoW is on the ladder; dual-label is next if the mix looks right.
+These are labor labels from area mix, not ranks. Real names later. No dual-label.
 
 ## Frag callouts (wired on the combat log)
 

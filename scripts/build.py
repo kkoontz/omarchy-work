@@ -194,7 +194,6 @@ def write_people(summary):
             "<tr>"
             f'<td>{person["rank"]}</td>'
             f'<th scope="row"><a href="{person_href(person["login"], ".")}">{escape(person["login"])}</a>{mark}</th>'
-            f'<td>{escape(class_display(person.get("class")))}</td>'
             f'<td>{escape(person.get("tier_label", ""))}</td>'
             f'<td>{person.get("season", {}).get("points", 0)}</td>'
             f'<td>{person.get("season", {}).get("event_count", 0)}</td>'
@@ -202,11 +201,11 @@ def write_people(summary):
             "</tr>"
         )
     body = f"""    <h1>Beta ladder</h1>
-    <p>Order is seasonal score. Class is this season’s area mix.
-    Placing until 10 season merges and 14 days in.</p>
+    <p>Order is seasonal score. Placing until 10 season merges and 14 days in.
+    Class lives on the person page.</p>
     <table>
       <thead>
-        <tr><th>#</th><th>Login</th><th>Class</th><th>Tier</th><th>Beta</th><th>Merges</th><th>Lifetime</th></tr>
+        <tr><th>#</th><th>Login</th><th>Tier</th><th>Beta</th><th>Merges</th><th>Lifetime</th></tr>
       </thead>
       <tbody>
 {chr(10).join("        " + row for row in rows)}
@@ -365,7 +364,7 @@ def write_methodology(snapshot):
       <li><strong>Frags</strong> — 2+ merges by the same login in 24 hours: Double Kill, Triple Kill, Multi Kill, Mega Kill, Monster Kill, Ultra Kill, Godlike. The home kill feed is those callouts from the last 7 days.</li>
       <li><strong>{escape(season["name"])} season</strong> — {escape(season["start"])} through {escape(season["end"])}. Seasonal points are merges in that window. After 21 days with no merge, seasonal score eases toward 40% of its raw value; it does not fall to zero. Placing while you have fewer than 10 season merges and have been in the season under 14 days.</li>
       <li><strong>Ladder</strong> — people with at least one season merge, ordered by seasonal score. Newcomer / Contributor / Active are point floors ({floors["contributor"]} / {floors["active"]}). Core / Elite / Legend / Omakase are the top {cuts["core"]} / {cuts["elite"]} / {cuts["legend"]} / {cuts["omakase"]} percent of that pool, and only if already Active. Peak this rebuild is the current tier; we do not yet keep a history across nights.</li>
-      <li><strong>Class</strong> — {class_bits}. Taken from this season’s scored areas (lifetime mix if they have no season merge). A merge that touches several areas splits its points among them. Migration Knight if migrations is the top area; otherwise those points count as Code Mage. Secondary if a second bucket is at least {int(jobs["secondary_share"] * 100)}% of classified points. Review Guardian and Community Bard wait on review/community events.</li>
+      <li><strong>Class</strong> — on the person page, not the ladder. Placeholder names: {class_bits}. Taken from this season’s scored areas (lifetime mix if they have no season merge). A merge that touches several areas splits its points among them. Migrations if that folder is the top area; otherwise those points count as Desktop. Secondary if a second bucket is at least {int(jobs["secondary_share"] * 100)}% of classified points. Names are temporary.</li>
     </ul>
     <h2>Achievement catalog</h2>
     <ul class="catalog">{catalog}</ul>

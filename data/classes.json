@@ -1,21 +1,21 @@
 {
   "secondary_share": 0.3,
   "order": [
-    "code-mage",
-    "migration-knight",
-    "theme-crafter",
-    "plugin-engineer",
-    "docs-sage"
+    "desktop",
+    "migrations",
+    "themes",
+    "plugins",
+    "docs"
   ],
   "labels": {
-    "code-mage": "Code Mage",
-    "migration-knight": "Migration Knight",
-    "theme-crafter": "Theme Crafter",
-    "plugin-engineer": "Plugin Engineer",
-    "docs-sage": "Docs Sage"
+    "desktop": "Desktop",
+    "migrations": "Migrations",
+    "themes": "Themes",
+    "plugins": "Plugins",
+    "docs": "Docs"
   },
   "buckets": {
-    "code-mage": [
+    "desktop": [
       "commands",
       "shell",
       "hyprland",
@@ -24,8 +24,8 @@
       "config",
       "tests"
     ],
-    "theme-crafter": ["themes"],
-    "plugin-engineer": ["applications", "agent-skill"],
-    "docs-sage": ["manual", "docs"]
+    "themes": ["themes"],
+    "plugins": ["applications", "agent-skill"],
+    "docs": ["manual", "docs"]
   }
 }

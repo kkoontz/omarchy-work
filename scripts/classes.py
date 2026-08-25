@@ -6,7 +6,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 CLASSES_PATH = ROOT / "data" / "classes.json"
-KNIGHT = "migration-knight"
+DESKTOP = "desktop"
 MIGRATIONS = "migrations"
 
 
@@ -42,9 +42,9 @@ def _bucket_points(area_totals, config, knight):
         scores[bucket] = sum(area_totals.get(area, 0) for area in areas)
     migrations = area_totals.get(MIGRATIONS, 0)
     if knight:
-        scores[KNIGHT] = migrations
+        scores[MIGRATIONS] = migrations
     else:
-        scores["code-mage"] += migrations
+        scores[DESKTOP] += migrations
     return scores
 
 
