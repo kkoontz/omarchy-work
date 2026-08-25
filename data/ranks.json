@@ -18,9 +18,10 @@
     "omakase": "Omakase"
   },
   "absolute": {
-    "contributor": 20,
-    "active": 40
+    "contributor": 12,
+    "active": 25
   },
+  "bots": ["omarchybot"],
   "percentile": {
     "core": 50,
     "elite": 25,

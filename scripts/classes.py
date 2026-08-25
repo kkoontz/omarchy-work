@@ -6,8 +6,6 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 CLASSES_PATH = ROOT / "data" / "classes.json"
-DESKTOP = "desktop"
-MIGRATIONS = "migrations"
 
 
 def load():
@@ -36,23 +34,11 @@ def area_points(events):
     return totals
 
 
-def _bucket_points(area_totals, config, knight):
+def _bucket_points(area_totals, config):
     scores = Counter()
     for bucket, areas in config["buckets"].items():
         scores[bucket] = sum(area_totals.get(area, 0) for area in areas)
-    migrations = area_totals.get(MIGRATIONS, 0)
-    if knight:
-        scores[MIGRATIONS] = migrations
-    else:
-        scores[DESKTOP] += migrations
     return scores
-
-
-def _knight(area_totals):
-    migrations = area_totals.get(MIGRATIONS, 0)
-    if migrations <= 0:
-        return False
-    return migrations >= max(area_totals.values())
 
 
 def classify(events, config=None, source=None):
@@ -60,7 +46,7 @@ def classify(events, config=None, source=None):
     totals = area_points(events)
     if not totals:
         return _empty(source)
-    scores = _bucket_points(totals, config, _knight(totals))
+    scores = _bucket_points(totals, config)
     order = config.get("order") or list(config["labels"])
     ranked = [
         (bucket, points)

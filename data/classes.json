@@ -1,29 +1,28 @@
 {
   "secondary_share": 0.3,
   "order": [
-    "desktop",
+    "session",
+    "bin",
+    "image",
     "migrations",
     "themes",
     "plugins",
     "docs"
   ],
   "labels": {
-    "desktop": "Desktop",
+    "session": "Session",
+    "bin": "Bin",
+    "image": "Image",
     "migrations": "Migrations",
     "themes": "Themes",
     "plugins": "Plugins",
     "docs": "Docs"
   },
   "buckets": {
-    "desktop": [
-      "commands",
-      "shell",
-      "hyprland",
-      "install",
-      "systemd",
-      "config",
-      "tests"
-    ],
+    "session": ["shell", "hyprland"],
+    "bin": ["commands", "systemd", "config", "tests"],
+    "image": ["install"],
+    "migrations": ["migrations"],
     "themes": ["themes"],
     "plugins": ["applications", "agent-skill"],
     "docs": ["manual", "docs"]

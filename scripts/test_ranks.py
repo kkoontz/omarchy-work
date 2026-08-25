@@ -105,6 +105,17 @@ class Ladder(unittest.TestCase):
         self.assertEqual(ladder[0]["tier"], "active")
         self.assertEqual(ladder[0]["peak_tier"], "omakase")
 
+    def test_bot_stops_at_active(self):
+        cfg = dict(CONFIG)
+        cfg["bots"] = ["omarchybot"]
+        people = [player("omarchybot", 200)] + [
+            player(f"n{i}", 12) for i in range(19)
+        ]
+        ladder = assign(people, config=cfg)
+        bot = next(person for person in ladder if person["login"] == "omarchybot")
+        self.assertEqual(bot["rank"], 1)
+        self.assertEqual(bot["tier"], "active")
+
 
 if __name__ == "__main__":
     unittest.main()

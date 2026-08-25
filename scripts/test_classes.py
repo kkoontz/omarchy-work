@@ -6,29 +6,28 @@ from classes import classify, display, for_person
 CONFIG = {
     "secondary_share": 0.3,
     "order": [
-        "desktop",
+        "session",
+        "bin",
+        "image",
         "migrations",
         "themes",
         "plugins",
         "docs",
     ],
     "labels": {
-        "desktop": "Desktop",
+        "session": "Session",
+        "bin": "Bin",
+        "image": "Image",
         "migrations": "Migrations",
         "themes": "Themes",
         "plugins": "Plugins",
         "docs": "Docs",
     },
     "buckets": {
-        "desktop": [
-            "commands",
-            "shell",
-            "hyprland",
-            "install",
-            "systemd",
-            "config",
-            "tests",
-        ],
+        "session": ["shell", "hyprland"],
+        "bin": ["commands", "systemd", "config", "tests"],
+        "image": ["install"],
+        "migrations": ["migrations"],
         "themes": ["themes"],
         "plugins": ["applications", "agent-skill"],
         "docs": ["manual", "docs"],
@@ -46,29 +45,22 @@ class Mix(unittest.TestCase):
         self.assertIsNone(info["primary"])
         self.assertEqual(display(info), "—")
 
-    def test_desktop(self):
+    def test_session_vs_bin(self):
         info = classify(
-            [event(10, ["shell"]), event(10, ["commands"])],
+            [event(10, ["shell"]), event(10, ["hyprland"])],
             config=CONFIG,
         )
-        self.assertEqual(info["label"], "Desktop")
-        self.assertIsNone(info["secondary"])
+        self.assertEqual(info["label"], "Session")
+        info = classify([event(10, ["commands"])], config=CONFIG)
+        self.assertEqual(info["label"], "Bin")
 
-    def test_migrations_when_that_folder_is_the_top_area(self):
+    def test_migrations_is_its_own_bucket(self):
         info = classify(
             [event(40, ["migrations"]), event(20, ["shell"])],
             config=CONFIG,
         )
         self.assertEqual(info["primary"], "migrations")
-        self.assertEqual(info["secondary"], "desktop")
-
-    def test_migrations_fold_into_desktop_when_not_the_top_slice(self):
-        info = classify(
-            [event(40, ["shell"]), event(10, ["migrations"])],
-            config=CONFIG,
-        )
-        self.assertEqual(info["primary"], "desktop")
-        self.assertIsNone(info["secondary"])
+        self.assertEqual(info["secondary"], "session")
 
     def test_secondary_at_thirty_percent(self):
         info = classify(

@@ -50,8 +50,16 @@ def percentile_tier(place, pool_size, config):
     return None
 
 
-def season_tier(points, place, pool_size, config):
+def is_bot(login, config):
+    return bool(login) and login in (config.get("bots") or [])
+
+
+def season_tier(points, place, pool_size, config, login=None):
     floor = absolute_tier(points, config)
+    if is_bot(login, config):
+        if _index(floor, config) > _index("active", config):
+            return "active"
+        return floor
     if _index(floor, config) < _index("active", config):
         return floor
     earned = percentile_tier(place, pool_size, config)
@@ -79,7 +87,7 @@ def assign(people, config=None, peaks=None):
         if points != last_points:
             place = shown
             last_points = points
-        tier = season_tier(points, place, pool_size, config)
+        tier = season_tier(points, place, pool_size, config, login=person["login"])
         peak = higher_tier(tier, peaks.get(person["login"]), config)
         person["rank"] = place
         person["tier"] = tier
