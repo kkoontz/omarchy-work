@@ -10,7 +10,6 @@ from urllib.parse import quote
 
 from achievements import CATALOG, CATALOG_LABELS
 from areas import AREA_LABELS, AREA_ORDER
-from classes import display as class_display
 from classes import load as load_classes
 from ranks import load as load_ranks
 from seasons import current as current_season
@@ -259,29 +258,36 @@ def sheet_row(term, value):
     return f"<dt>{escape(term)}</dt><dd>{value}</dd>"
 
 
+def standing_line(person):
+    info = person.get("class") or {}
+    bits = []
+    if person.get("rank"):
+        bits.append(f'#{person["rank"]}')
+        if person.get("tier_label"):
+            bits.append(person["tier_label"])
+    if info.get("label"):
+        bits.append(info["label"])
+    text = " ".join(bits) if bits else "—"
+    html = escape(text)
+    if info.get("source") == "lifetime" and info.get("label"):
+        html += ' <span class="meta">lifetime mix</span>'
+    if person.get("season", {}).get("placing"):
+        html += ' <span class="placing">placing</span>'
+    return html
+
+
 def person_sheet(person):
     ach = person["achievements"]
     season = person.get("season") or {}
     info = person.get("class") or {}
-    job = class_display(info)
-    if info.get("source") == "lifetime" and info.get("label"):
-        job = f"{job} (lifetime mix)"
-    if person.get("rank"):
-        place = f'#{person["rank"]}'
-        tier = escape(person.get("tier_label") or "—")
-    else:
-        place = "—"
-        tier = "—"
     beta = str(season.get("points", 0))
-    if season.get("placing"):
-        beta += ' <span class="placing">placing</span>'
     decay = season.get("decay")
     if decay is not None and decay < 1:
         beta += f' <span class="meta">×{decay}</span>'
-    rows = [
-        sheet_row("Class", escape(job)),
-        sheet_row("Place", place),
-        sheet_row("Tier", tier),
+    rows = []
+    if info.get("secondary_label"):
+        rows.append(sheet_row("Also", escape(info["secondary_label"])))
+    rows += [
         sheet_row("Beta", beta),
         sheet_row("Lifetime", str(person.get("lifetime_points", 0))),
         sheet_row(
@@ -301,7 +307,10 @@ def person_sheet(person):
             "last 90 days" if person["still_active"] else "not in the last 90 days",
         ),
     ]
-    return '<dl class="sheet">\n      ' + "\n      ".join(rows) + "\n    </dl>"
+    return (
+        f'<p class="standing">{standing_line(person)}</p>\n    '
+        '<dl class="sheet">\n      ' + "\n      ".join(rows) + "\n    </dl>"
+    )
 
 
 def write_person(person):
@@ -452,6 +461,7 @@ ul.achievements li.missing { color: var(--muted); }
 .pts { color: var(--muted); font-variant-numeric: tabular-nums; }
 ul.frags { list-style: none; padding: 0; }
 .placing { color: var(--muted); font-style: italic; font-weight: normal; }
+.standing { font-size: 1.15rem; margin: 0.35rem 0 1rem; }
 dl.sheet {
   display: grid;
   grid-template-columns: 7rem 1fr;
