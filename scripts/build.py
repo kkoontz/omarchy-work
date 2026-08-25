@@ -554,47 +554,65 @@ def write_css():
     (SITE / "style.css").write_text(
         """
 :root {
-  --ink: #1c1917;
-  --paper: #f5f0e8;
-  --muted: #57534e;
-  --line: #d6d3d1;
-  --link: #1d4e4f;
-  --got: #3f6212;
+  --ink: #e6e2d8;
+  --paper: #0e1012;
+  --muted: #8b8680;
+  --line: #2c3034;
+  --link: #6ee7d8;
+  --got: #b4e645;
+  --frag: #ff8a4c;
 }
 * { box-sizing: border-box; }
-html { font-size: 18px; }
+html { font-size: 17px; }
 body {
   margin: 0 auto;
-  max-width: 52rem;
+  max-width: 56rem;
   padding: 2rem 1.25rem 4rem;
   background: var(--paper);
   color: var(--ink);
-  font-family: "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif;
+  font-family: "Segoe UI", system-ui, sans-serif;
   line-height: 1.45;
 }
-header { margin-bottom: 2rem; }
-nav { margin-top: 0.5rem; }
+header {
+  margin-bottom: 2rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid var(--line);
+}
+nav { margin-top: 0.65rem; }
 nav a { margin-right: 1rem; }
-.mark { font-size: 1.15rem; margin: 0; }
+.mark {
+  font-family: ui-monospace, "JetBrains Mono", "Cascadia Mono", monospace;
+  font-size: 0.92rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  margin: 0;
+}
 .sub, .meta, footer, .areas { color: var(--muted); font-size: 0.92rem; }
 a { color: var(--link); }
 table { width: 100%; border-collapse: collapse; margin: 1.5rem 0; }
 th, td { text-align: left; padding: 0.4rem 0.5rem; border-bottom: 1px solid var(--line); }
-td { font-variant-numeric: tabular-nums; }
+td, time, .pts, dl.sheet dd, .ladder td, .standing {
+  font-variant-numeric: tabular-nums;
+  font-family: ui-monospace, "JetBrains Mono", "Cascadia Mono", monospace;
+}
 .lede { font-size: 1.15rem; }
 .facts { padding-left: 1.2rem; }
 ol.prs { padding-left: 1.25rem; }
 ol.prs li { margin: 0.45rem 0; }
-time { font-variant-numeric: tabular-nums; }
 footer { margin-top: 3rem; border-top: 1px solid var(--line); padding-top: 1rem; }
 ul.achievements { list-style: none; padding: 0; }
 ul.achievements li.got { color: var(--got); }
 ul.achievements li.missing { color: var(--muted); }
 .weeks { max-width: 20rem; }
-.frag { font-weight: 700; color: #9a3412; margin-right: 0.35rem; }
-.pts { color: var(--muted); font-variant-numeric: tabular-nums; }
-ul.frags { list-style: none; padding: 0; }
-.placing { color: var(--muted); font-style: italic; font-weight: normal; }
+.frag { font-weight: 700; color: var(--frag); margin-right: 0.35rem; }
+.pts { color: var(--muted); }
+ul.frags {
+  list-style: none;
+  padding: 0 0 0 0.85rem;
+  border-left: 2px solid var(--frag);
+}
+ul.frags li { margin: 0.35rem 0; }
+.placing { color: var(--muted); font-style: italic; font-weight: normal; font-family: inherit; }
 .standing { font-size: 1.15rem; margin: 0.35rem 0 1rem; }
 dl.sheet {
   display: grid;
@@ -602,8 +620,12 @@ dl.sheet {
   gap: 0.2rem 1rem;
   margin: 1rem 0 1.75rem;
 }
-dl.sheet dt { color: var(--muted); margin: 0; }
-dl.sheet dd { margin: 0; font-variant-numeric: tabular-nums; }
+dl.sheet dt {
+  color: var(--muted);
+  margin: 0;
+  font-family: "Segoe UI", system-ui, sans-serif;
+}
+dl.sheet dd { margin: 0; }
 """
     )
 
