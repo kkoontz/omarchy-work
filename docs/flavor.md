@@ -17,7 +17,7 @@ Code Mage, Review Guardian, Theme Crafter, Plugin Engineer, Docs Sage, Migration
 
 A person can show WoW class as identity and Quake name as a title. Do not ship both until classes exist.
 
-## Frag callouts (combat log, later)
+## Frag callouts (wired on the combat log)
 
 From merge timestamps, not from chat:
 
@@ -31,6 +31,6 @@ From merge timestamps, not from chat:
 
 These are announcements on the person combat log and maybe a global “recent frags” strip. They do not replace score.
 
-## Scoring cap (open question)
+## Scoring (wired)
 
-A hard weekly cap can teach people to stop after the cap. Prefer diminishing returns over a cliff when the scoring engine lands: extra merges still count, just less. No change until that unit.
+Diminishing weekly multiplier, floor 0.25. Extra merges still count.

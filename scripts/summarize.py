@@ -7,6 +7,7 @@ from datetime import datetime, timezone, timedelta
 
 from achievements import score as achievement_score
 from areas import AREA_ORDER
+from scoring import score_events
 
 WINDOWS = {
     "30d": timedelta(days=30),
@@ -153,7 +154,33 @@ def build_people(prs, now):
         person["still_active"] = in_window(
             person["last_merged_at"], now, timedelta(days=90)
         )
+        events, total = score_events(person["prs"])
+        person["combat_log"] = events
+        person["lifetime_points"] = total
     return people
+
+
+def recent_frags(people, now, days=7):
+    cutoff = now - timedelta(days=days)
+    hits = []
+    for person in people.values():
+        for event in person.get("combat_log") or []:
+            if not event.get("frag"):
+                continue
+            if parse_time(event["merged_at"]) < cutoff:
+                continue
+            hits.append(
+                {
+                    "login": person["login"],
+                    "frag": event["frag"],
+                    "merged_at": event["merged_at"],
+                    "number": event["number"],
+                    "title": event["title"],
+                    "url": event["url"],
+                }
+            )
+    hits.sort(key=lambda item: item["merged_at"], reverse=True)
+    return hits[:20]
 
 
 def rank_people(people):
@@ -214,6 +241,7 @@ def summarize(snapshot, now=None):
         "median_days_open_90d": lead_times(window_prs["90d"]),
         "weekly": weekly_counts(prs, weeks=26, now=now),
         "funnel_90d": snapshot.get("funnel_90d") or {},
+        "recent_frags": recent_frags(people, now),
     }
     area_extra = {}
     for area in AREA_ORDER:

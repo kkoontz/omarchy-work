@@ -140,6 +140,20 @@ def write_home(snapshot, summary):
         if "closed_unmerged_90d" in funnel:
             funnel_bits.append(f"{funnel['closed_unmerged_90d']} closed unmerged")
     funnel_line = ", ".join(funnel_bits)
+    frag_items = "".join(
+        "<li>"
+        f'<span class="frag">{escape(hit["frag"])}</span> '
+        f'<a href="{person_href(hit["login"], ".")}">{escape(hit["login"])}</a> '
+        f'<a href="{escape(hit["url"])}">#{hit["number"]}</a> '
+        f"{escape(hit['title'])}"
+        "</li>"
+        for hit in facts.get("recent_frags") or []
+    )
+    frag_block = (
+        f"<h2>Recent frags</h2><ul class=\"frags\">{frag_items}</ul>"
+        if frag_items
+        else ""
+    )
     body = f"""    <p class="lede">Where work landed. Merged pull requests, by area and by the people who shipped them.</p>
     <p class="meta">Snapshot {escape(snapshot["generated_at"])} · {snapshot["pr_count"]} merged PRs</p>
     <ul class="facts">
@@ -162,6 +176,7 @@ def write_home(snapshot, summary):
     </table>
     <h2>Merges by week</h2>
     {week_table(facts["weekly"])}
+    {frag_block}
     <p><a href="people.html">People, by share of achievements</a></p>
 """
     (SITE / "index.html").write_text(page("Omarchy Quattro Arena", body, root="."))
@@ -178,6 +193,7 @@ def write_people(summary):
             f'<td>{ach["earned"]} / {ach["total"]}</td>'
             f'<td>{ach["percent"]}%</td>'
             f'<td>{len(person["prs"])}</td>'
+            f'<td>{person.get("lifetime_points", 0)}</td>'
             "</tr>"
         )
     catalog = "".join(
@@ -189,7 +205,7 @@ def write_people(summary):
     Breadth across the tree counts; a pile of merges in one folder does not fill the catalog.</p>
     <table>
       <thead>
-        <tr><th>#</th><th>Login</th><th>Achievements</th><th>Share</th><th>Merges</th></tr>
+        <tr><th>#</th><th>Login</th><th>Achievements</th><th>Share</th><th>Merges</th><th>Points</th></tr>
       </thead>
       <tbody>
 {chr(10).join("        " + row for row in rows)}
@@ -259,9 +275,31 @@ def write_person(person):
         for aid, _ in CATALOG
     )
     active = "yes" if person["still_active"] else "no"
+    log_rows = []
+    for event in person.get("combat_log") or []:
+        frag = (
+            f'<span class="frag">{escape(event["frag"])}</span> '
+            if event.get("frag")
+            else ""
+        )
+        log_rows.append(
+            "<li>"
+            f'<time datetime="{escape(event["merged_at"])}">{escape(event["merged_at"][:10])}</time> '
+            f"{frag}"
+            f'<a href="{escape(event["url"])}">#{event["number"]}</a> '
+            f"{escape(event['title'])} "
+            f'<span class="pts">+{event["points"]}</span>'
+            "</li>"
+        )
+    log_html = (
+        "<ol class=\"prs combat\">" + "".join(log_rows) + "</ol>"
+        if log_rows
+        else "<p>No scored merges yet.</p>"
+    )
     body = f"""    <h1>{escape(login)}</h1>
     <p>Rank {person["rank"]} by achievement share ({ach["percent"]}% · {ach["earned"]} of {ach["total"]}).
-    {len(person["prs"])} merges. First {escape(person["first_merged_at"][:10])}, last {escape(person["last_merged_at"][:10])}.
+    {len(person["prs"])} merges · {person.get("lifetime_points", 0)} lifetime points.
+    First {escape(person["first_merged_at"][:10])}, last {escape(person["last_merged_at"][:10])}.
     Active in the last 90 days: {active}.</p>
     <h2>Achievements</h2>
     <ul class="achievements">{catalog}</ul>
@@ -270,8 +308,8 @@ def write_person(person):
       <thead><tr><th>Area</th><th>Merges</th></tr></thead>
       <tbody>{area_rows}</tbody>
     </table>
-    <h2>Pull requests</h2>
-    {pr_list(person["prs"], person_links=False)}
+    <h2>Combat log</h2>
+    {log_html}
 """
     directory = SITE / "person"
     directory.mkdir(parents=True, exist_ok=True)
@@ -297,6 +335,11 @@ def write_methodology(snapshot):
       <li><strong>Median days open</strong> — middle time from opening a PR to merge. How the pipe is moving.</li>
       <li><strong>Pipe</strong> — currently open PRs, merges in 90 days, and PRs closed without merge in 90 days. Opening is not credit.</li>
       <li><strong>Achievements</strong> — facts about landed work. Rank on the people page is share of this catalog, so spreading across the tree beats repeating one folder.</li>
+      <li><strong>Points</strong> — each merged PR scores <code>(area base + 2 × extra areas) × size × week</code>.
+        Area base is 10 for shell/commands/hyprland/install/migrations, 8 for agent-skill/applications/systemd, 6 for themes/tests/docs/manual/config, 3 for other.
+        Size is 0.6 for one file, 1.0 for 2–8 files, 1.15 for 9+.
+        In a given week the 1st merge is full value, then 0.85, 0.70, … never below 0.25. Extra work still counts.</li>
+      <li><strong>Frags</strong> — 2+ merges by the same login in 24 hours: Double Kill, Triple Kill, Multi Kill, Mega Kill, Monster Kill, Ultra Kill, Godlike.</li>
     </ul>
     <h2>Achievement catalog</h2>
     <ul class="catalog">{catalog}</ul>
@@ -348,6 +391,9 @@ ul.achievements { list-style: none; padding: 0; }
 ul.achievements li.got { color: var(--got); }
 ul.achievements li.missing { color: var(--muted); }
 .weeks { max-width: 20rem; }
+.frag { font-weight: 700; color: #9a3412; margin-right: 0.35rem; }
+.pts { color: var(--muted); font-variant-numeric: tabular-nums; }
+ul.frags { list-style: none; padding: 0; }
 """
     )
 
