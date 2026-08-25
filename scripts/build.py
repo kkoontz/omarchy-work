@@ -255,6 +255,55 @@ def write_area(area, summary):
     )
 
 
+def sheet_row(term, value):
+    return f"<dt>{escape(term)}</dt><dd>{value}</dd>"
+
+
+def person_sheet(person):
+    ach = person["achievements"]
+    season = person.get("season") or {}
+    info = person.get("class") or {}
+    job = class_display(info)
+    if info.get("source") == "lifetime" and info.get("label"):
+        job = f"{job} (lifetime mix)"
+    if person.get("rank"):
+        place = f'#{person["rank"]}'
+        tier = escape(person.get("tier_label") or "—")
+    else:
+        place = "—"
+        tier = "—"
+    beta = str(season.get("points", 0))
+    if season.get("placing"):
+        beta += ' <span class="placing">placing</span>'
+    decay = season.get("decay")
+    if decay is not None and decay < 1:
+        beta += f' <span class="meta">×{decay}</span>'
+    rows = [
+        sheet_row("Class", escape(job)),
+        sheet_row("Place", place),
+        sheet_row("Tier", tier),
+        sheet_row("Beta", beta),
+        sheet_row("Lifetime", str(person.get("lifetime_points", 0))),
+        sheet_row(
+            "Catalog",
+            f'{ach["percent"]}% ({ach["earned"]} of {ach["total"]})',
+        ),
+        sheet_row(
+            "Merges",
+            f'{season.get("event_count", 0)} this season / {len(person["prs"])} all',
+        ),
+        sheet_row(
+            "Span",
+            f'{escape(person["first_merged_at"][:10])} – {escape(person["last_merged_at"][:10])}',
+        ),
+        sheet_row(
+            "Active",
+            "last 90 days" if person["still_active"] else "not in the last 90 days",
+        ),
+    ]
+    return '<dl class="sheet">\n      ' + "\n      ".join(rows) + "\n    </dl>"
+
+
 def write_person(person):
     login = person["login"]
     ach = person["achievements"]
@@ -274,16 +323,6 @@ def write_person(person):
         )
         for aid, _ in CATALOG
     )
-    active = "yes" if person["still_active"] else "no"
-    season = person.get("season") or {}
-    placing = " placing" if season.get("placing") else ""
-    if person.get("rank"):
-        standing = (
-            f'Beta #{person["rank"]} {escape(person.get("tier_label", ""))} '
-            f'{season.get("points", 0)}{placing}'
-        )
-    else:
-        standing = "No Beta merges yet"
     log_rows = []
     for event in person.get("combat_log") or []:
         frag = (
@@ -305,19 +344,11 @@ def write_person(person):
         if log_rows
         else "<p>No scored merges yet.</p>"
     )
-    job = class_display(person.get("class"))
-    source = (person.get("class") or {}).get("source")
-    source_note = " (lifetime mix)" if source == "lifetime" else ""
     body = f"""    <h1>{escape(login)}</h1>
-    <p class="class-line">{escape(job)}{source_note}</p>
-    <p>{standing}.
-    {len(person["prs"])} merges · {person.get("lifetime_points", 0)} lifetime.
-    Catalog {ach["percent"]}% ({ach["earned"]} of {ach["total"]}).
-    First {escape(person["first_merged_at"][:10])}, last {escape(person["last_merged_at"][:10])}.
-    Active in the last 90 days: {active}.</p>
-    <h2>Achievements</h2>
+    {person_sheet(person)}
+    <h2>Catalog</h2>
     <ul class="achievements">{catalog}</ul>
-    <h2>Merges by area</h2>
+    <h2>Areas</h2>
     <table>
       <thead><tr><th>Area</th><th>Merges</th></tr></thead>
       <tbody>{area_rows}</tbody>
@@ -356,7 +387,7 @@ def write_methodology(snapshot):
       <li><strong>Still merging</strong> — of logins who merged in the previous 90 days, how many also merged in the last 90.</li>
       <li><strong>Median days open</strong> — middle time from opening a PR to merge. How the pipe is moving.</li>
       <li><strong>Pipe</strong> — currently open PRs, merges in 90 days, and PRs closed without merge in 90 days. Opening is not credit.</li>
-      <li><strong>Achievements</strong> — facts about landed work, shown on the person page. Spreading across the tree fills the catalog. It is not the ladder sort.</li>
+      <li><strong>Achievements</strong> — facts about landed work. Spreading across the tree fills the catalog on the person page. It is not the ladder sort.</li>
       <li><strong>Points</strong> — each merged PR scores <code>(area base + 2 × extra areas) × size × week</code>.
         Area base is 10 for shell/commands/hyprland/install/migrations, 8 for agent-skill/applications/systemd, 6 for themes/tests/docs/manual/config, 3 for other.
         Size is 0.6 for one file, 1.0 for 2–8 files, 1.15 for 9+.
@@ -364,6 +395,7 @@ def write_methodology(snapshot):
       <li><strong>Frags</strong> — 2+ merges by the same login in 24 hours: Double Kill, Triple Kill, Multi Kill, Mega Kill, Monster Kill, Ultra Kill, Godlike. The home kill feed is those callouts from the last 7 days.</li>
       <li><strong>{escape(season["name"])} season</strong> — {escape(season["start"])} through {escape(season["end"])}. Seasonal points are merges in that window. After 21 days with no merge, seasonal score eases toward 40% of its raw value; it does not fall to zero. Placing while you have fewer than 10 season merges and have been in the season under 14 days.</li>
       <li><strong>Ladder</strong> — people with at least one season merge, ordered by seasonal score. Newcomer / Contributor / Active are point floors ({floors["contributor"]} / {floors["active"]}). Core / Elite / Legend / Omakase are the top {cuts["core"]} / {cuts["elite"]} / {cuts["legend"]} / {cuts["omakase"]} percent of that pool, and only if already Active. Peak this rebuild is the current tier; we do not yet keep a history across nights.</li>
+      <li><strong>Person page</strong> — a sheet: class, place, tier, scores, catalog, areas, combat log.</li>
       <li><strong>Class</strong> — on the person page, not the ladder. Placeholder names: {class_bits}. Taken from this season’s scored areas (lifetime mix if they have no season merge). A merge that touches several areas splits its points among them. Migrations if that folder is the top area; otherwise those points count as Desktop. Secondary if a second bucket is at least {int(jobs["secondary_share"] * 100)}% of classified points. Names are temporary.</li>
     </ul>
     <h2>Achievement catalog</h2>
@@ -420,7 +452,14 @@ ul.achievements li.missing { color: var(--muted); }
 .pts { color: var(--muted); font-variant-numeric: tabular-nums; }
 ul.frags { list-style: none; padding: 0; }
 .placing { color: var(--muted); font-style: italic; font-weight: normal; }
-.class-line { font-size: 1.05rem; margin: 0 0 0.4rem; }
+dl.sheet {
+  display: grid;
+  grid-template-columns: 7rem 1fr;
+  gap: 0.2rem 1rem;
+  margin: 1rem 0 1.75rem;
+}
+dl.sheet dt { color: var(--muted); margin: 0; }
+dl.sheet dd { margin: 0; font-variant-numeric: tabular-nums; }
 """
     )
 
