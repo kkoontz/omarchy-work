@@ -7,7 +7,9 @@ from datetime import datetime, timezone, timedelta
 
 from achievements import score as achievement_score
 from areas import AREA_ORDER
+from classes import area_points
 from classes import for_person as classify_person
+from classes import load as load_classes
 from ranks import assign as assign_ladder
 from scoring import score_events
 from seasons import current as current_season
@@ -197,6 +199,45 @@ def rank_people(people):
     return assign_ladder(people.values())
 
 
+def class_boards(people, config=None):
+    config = config or load_classes()
+    boards = {key: [] for key in config["order"]}
+    for person in people.values():
+        info = person.get("class") or {}
+        if info.get("source") != "season" or not info.get("primary"):
+            continue
+        boards.setdefault(info["primary"], []).append(person)
+    for group in boards.values():
+        group.sort(
+            key=lambda person: (
+                -person["season"]["points"],
+                person["login"].lower(),
+            )
+        )
+    return boards
+
+
+def area_season_boards(people, season):
+    boards = {area: [] for area in AREA_ORDER}
+    for person in people.values():
+        events = [
+            event
+            for event in person.get("combat_log") or []
+            if in_season(event["merged_at"], season)
+        ]
+        for area, points in area_points(events).items():
+            if points <= 0:
+                continue
+            boards.setdefault(area, []).append(
+                {"person": person, "points": round(points, 2)}
+            )
+    for group in boards.values():
+        group.sort(
+            key=lambda row: (-row["points"], row["person"]["login"].lower())
+        )
+    return boards
+
+
 def summarize(snapshot, now=None):
     now = now or datetime.now(timezone.utc)
     prs = snapshot["prs"]
@@ -213,6 +254,7 @@ def summarize(snapshot, now=None):
                     area_counts[area][key] += 1
     people = build_people(prs, now)
     standings = rank_people(people)
+    season = current_season()
     window_prs = {
         key: prs_in_window(prs, now, delta) for key, delta in WINDOWS.items()
     }
@@ -247,6 +289,8 @@ def summarize(snapshot, now=None):
         "area_extra": area_extra,
         "people": people,
         "standings": standings,
+        "class_boards": class_boards(people),
+        "area_season": area_season_boards(people, season),
         "facts": facts,
         "now": now,
     }

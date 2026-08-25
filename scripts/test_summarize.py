@@ -3,7 +3,7 @@ import unittest
 from datetime import datetime, timezone
 
 from achievements import TOTAL, earned_ids, score
-from summarize import concentration, median, retention
+from summarize import area_season_boards, class_boards, concentration, median, retention
 
 
 NOW = datetime(2026, 8, 25, tzinfo=timezone.utc)
@@ -92,6 +92,55 @@ class AchievementTests(unittest.TestCase):
         self.assertGreater(
             score(wide, now=NOW)["percent"], score(farm, now=NOW)["percent"]
         )
+
+
+class CategoryTests(unittest.TestCase):
+    def test_class_board_is_season_primary_only(self):
+        people = {
+            "a": {
+                "login": "a",
+                "season": {"points": 40},
+                "class": {
+                    "primary": "desktop",
+                    "source": "season",
+                },
+            },
+            "b": {
+                "login": "b",
+                "season": {"points": 10},
+                "class": {
+                    "primary": "themes",
+                    "source": "lifetime",
+                },
+            },
+        }
+        boards = class_boards(
+            people,
+            config={
+                "order": ["desktop", "themes"],
+            },
+        )
+        self.assertEqual([p["login"] for p in boards["desktop"]], ["a"])
+        self.assertEqual(boards["themes"], [])
+
+    def test_area_season_splits_points(self):
+        people = {
+            "a": {
+                "login": "a",
+                "combat_log": [
+                    {
+                        "points": 10,
+                        "areas": ["themes", "manual"],
+                        "merged_at": "2026-08-12T00:00:00Z",
+                    }
+                ],
+            }
+        }
+        season = {"start": "2026-08-10", "end": "2026-12-31"}
+        boards = area_season_boards(people, season)
+        self.assertEqual(boards["themes"][0]["points"], 5.0)
+        self.assertEqual(boards["manual"][0]["points"], 5.0)
+        self.assertEqual(boards["shell"], [])
 
 
 if __name__ == "__main__":

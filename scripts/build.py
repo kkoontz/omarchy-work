@@ -38,6 +38,10 @@ def area_href(area, root=".."):
     return f"{root}/area/{escape(area)}.html"
 
 
+def class_href(class_id, root=".."):
+    return f"{root}/class/{escape(class_id)}.html"
+
+
 def page(title, body, root="."):
     season = current_season()
     season_line = (
@@ -60,6 +64,7 @@ def page(title, body, root="."):
     <nav>
       <a href="{root}/index.html">Areas</a>
       <a href="{root}/people.html">People</a>
+      <a href="{root}/classes.html">Categories</a>
       <a href="{root}/methodology.html">How we count</a>
     </nav>
   </header>
@@ -201,7 +206,7 @@ def write_people(summary):
         )
     body = f"""    <h1>Beta ladder</h1>
     <p>Order is seasonal score. Placing until 10 season merges and 14 days in.
-    Class lives on the person page.</p>
+    Class lives on the person page. <a href="classes.html">Category ladders</a>.</p>
     <table>
       <thead>
         <tr><th>#</th><th>Login</th><th>Tier</th><th>Beta</th><th>Merges</th><th>Lifetime</th></tr>
@@ -235,8 +240,40 @@ def write_area(area, summary):
     lead = extra.get("median_days_open")
     lead_s = "—" if lead is None else f"{lead} days"
     unique = extra.get("unique_people", {})
+    season_board = summary.get("area_season", {}).get(area, [])
+    season_rows = []
+    last_pts = None
+    place = 0
+    shown = 0
+    for row in season_board:
+        shown += 1
+        pts = row["points"]
+        if pts != last_pts:
+            place = shown
+            last_pts = pts
+        person = row["person"]
+        placing = person.get("season", {}).get("placing")
+        mark = ' <span class="placing">placing</span>' if placing else ""
+        season_rows.append(
+            "<tr>"
+            f"<td>{place}</td>"
+            f'<th scope="row"><a href="{person_href(person["login"])}">{escape(person["login"])}</a>{mark}</th>'
+            f'<td>{escape(person.get("tier_label") or "—")}</td>'
+            f"<td>{pts}</td>"
+            "</tr>"
+        )
+    season_table = (
+        "<table>"
+        "<thead><tr><th>#</th><th>Login</th><th>Tier</th><th>Here</th></tr></thead>"
+        f"<tbody>{''.join(season_rows)}</tbody></table>"
+        if season_rows
+        else "<p>No Beta points in this area yet.</p>"
+    )
     body = f"""    <h1>{escape(label)}</h1>
     <p>{len(prs)} merged PRs. People in 30 / 90 / all: {unique.get("30d", 0)} / {unique.get("90d", 0)} / {unique.get("all", 0)}. Median days open: {escape(lead_s)}.</p>
+    <h2>Beta ladder here</h2>
+    <p>Seasonal points from merges that touched this folder, split when a merge hits several areas.</p>
+    {season_table}
     <h2>People in this area</h2>
     <table>
       <thead><tr><th>Login</th><th>Merges here</th></tr></thead>
@@ -372,6 +409,79 @@ def write_person(person):
     )
 
 
+def write_class_board(class_id, people):
+    jobs = load_classes()
+    label = jobs["labels"].get(class_id, class_id)
+    rows = []
+    last_pts = None
+    place = 0
+    shown = 0
+    for person in people:
+        shown += 1
+        pts = person.get("season", {}).get("points", 0)
+        if pts != last_pts:
+            place = shown
+            last_pts = pts
+        placing = person.get("season", {}).get("placing")
+        mark = ' <span class="placing">placing</span>' if placing else ""
+        rows.append(
+            "<tr>"
+            f"<td>{place}</td>"
+            f'<th scope="row"><a href="{person_href(person["login"])}">{escape(person["login"])}</a>{mark}</th>'
+            f'<td>{escape(person.get("tier_label") or "—")}</td>'
+            f"<td>{pts}</td>"
+            f'<td>{person.get("season", {}).get("event_count", 0)}</td>'
+            "</tr>"
+        )
+    table = (
+        "<table>"
+        "<thead><tr><th>#</th><th>Login</th><th>Tier</th><th>Beta</th><th>Merges</th></tr></thead>"
+        f"<tbody>{chr(10).join('        ' + row for row in rows)}</tbody></table>"
+        if rows
+        else "<p>No Beta merges in this class yet.</p>"
+    )
+    body = f"""    <h1>{escape(label)}</h1>
+    <p>Beta ladder for this class. Primary mix only. Ordered by seasonal score.</p>
+    {table}
+    <p><a href="../classes.html">All category ladders</a></p>
+"""
+    directory = SITE / "class"
+    directory.mkdir(parents=True, exist_ok=True)
+    (directory / f"{class_id}.html").write_text(
+        page(f"{label} — Omarchy Quattro Arena", body, root="..")
+    )
+
+
+def write_classes_index(summary):
+    jobs = load_classes()
+    boards = summary.get("class_boards") or {}
+    class_items = "".join(
+        "<li>"
+        f'<a href="{class_href(class_id, ".")}">{escape(jobs["labels"][class_id])}</a>'
+        f' — {len(boards.get(class_id) or [])}'
+        "</li>"
+        for class_id in jobs["order"]
+    )
+    area_items = "".join(
+        "<li>"
+        f'<a href="{area_href(area, ".")}">{escape(AREA_LABELS[area])}</a>'
+        f' — {len(summary.get("area_season", {}).get(area) or [])}'
+        "</li>"
+        for area in AREA_ORDER
+    )
+    body = f"""    <h1>Category ladders</h1>
+    <p>Season boards by labor and by folder. The overall ladder stays on
+    <a href="people.html">People</a>.</p>
+    <h2>Class</h2>
+    <ul>{class_items}</ul>
+    <h2>Area</h2>
+    <ul>{area_items}</ul>
+"""
+    (SITE / "classes.html").write_text(
+        page("Category ladders — Omarchy Quattro Arena", body, root=".")
+    )
+
+
 def write_methodology(snapshot):
     season = current_season()
     ranks = load_ranks()
@@ -405,7 +515,8 @@ def write_methodology(snapshot):
       <li><strong>{escape(season["name"])} season</strong> — {escape(season["start"])} through {escape(season["end"])}. Seasonal points are merges in that window. After 21 days with no merge, seasonal score eases toward 40% of its raw value; it does not fall to zero. Placing while you have fewer than 10 season merges and have been in the season under 14 days.</li>
       <li><strong>Ladder</strong> — people with at least one season merge, ordered by seasonal score. Newcomer / Contributor / Active are point floors ({floors["contributor"]} / {floors["active"]}). Core / Elite / Legend / Omakase are the top {cuts["core"]} / {cuts["elite"]} / {cuts["legend"]} / {cuts["omakase"]} percent of that pool, and only if already Active. Peak this rebuild is the current tier; we do not yet keep a history across nights.</li>
       <li><strong>Person page</strong> — a sheet: class, place, tier, scores, catalog, areas, combat log.</li>
-      <li><strong>Class</strong> — on the person page, not the ladder. Placeholder names: {class_bits}. Taken from this season’s scored areas (lifetime mix if they have no season merge). A merge that touches several areas splits its points among them. Migrations if that folder is the top area; otherwise those points count as Desktop. Secondary if a second bucket is at least {int(jobs["secondary_share"] * 100)}% of classified points. Names are temporary.</li>
+      <li><strong>Class</strong> — on the person page, not the overall ladder. Placeholder names: {class_bits}. Taken from this season’s scored areas (lifetime mix if they have no season merge). A merge that touches several areas splits its points among them. Migrations if that folder is the top area; otherwise those points count as Desktop. Secondary if a second bucket is at least {int(jobs["secondary_share"] * 100)}% of classified points. Names are temporary.</li>
+      <li><strong>Category ladders</strong> — a season board per class (primary mix) and per area (points from merges that touched that folder, split across areas on the same merge).</li>
     </ul>
     <h2>Achievement catalog</h2>
     <ul class="catalog">{catalog}</ul>
@@ -481,6 +592,9 @@ def main():
     write_css()
     write_home(snapshot, summary)
     write_people(summary)
+    write_classes_index(summary)
+    for class_id, group in (summary.get("class_boards") or {}).items():
+        write_class_board(class_id, group)
     for area in AREA_ORDER:
         write_area(area, summary)
     for person in summary["people"].values():
