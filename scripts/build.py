@@ -10,6 +10,7 @@ from urllib.parse import quote
 
 from achievements import CATALOG, CATALOG_LABELS
 from areas import AREA_LABELS, AREA_ORDER
+from seasons import current as current_season
 from summarize import WINDOWS, summarize
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -36,6 +37,11 @@ def area_href(area, root=".."):
 
 
 def page(title, body, root="."):
+    season = current_season()
+    season_line = (
+        f'{escape(season["name"])} season '
+        f'{escape(season["start"])} – {escape(season["end"])}'
+    )
     return f"""<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -46,8 +52,9 @@ def page(title, body, root="."):
 </head>
 <body>
   <header>
-    <p class="mark"><a href="{root}/index.html">Omarchy work map</a></p>
-    <p class="sub">Merged work on <a href="https://github.com/basecamp/omarchy">basecamp/omarchy</a></p>
+    <p class="mark"><a href="{root}/index.html">Omarchy Quattro Arena</a></p>
+    <p class="sub">Merged work on <a href="https://github.com/basecamp/omarchy">basecamp/omarchy</a>
+    · {season_line}</p>
     <nav>
       <a href="{root}/index.html">Areas</a>
       <a href="{root}/people.html">People</a>
@@ -133,7 +140,7 @@ def write_home(snapshot, summary):
         if "closed_unmerged_90d" in funnel:
             funnel_bits.append(f"{funnel['closed_unmerged_90d']} closed unmerged")
     funnel_line = ", ".join(funnel_bits)
-    body = f"""    <p class="lede">Where work landed on Omarchy. Merged pull requests, by area and by the people who shipped them.</p>
+    body = f"""    <p class="lede">Where work landed. Merged pull requests, by area and by the people who shipped them.</p>
     <p class="meta">Snapshot {escape(snapshot["generated_at"])} · {snapshot["pr_count"]} merged PRs</p>
     <ul class="facts">
       <li>People who merged in 30 / 90 days: <strong>{facts["unique_people"]["30d"]}</strong> / <strong>{facts["unique_people"]["90d"]}</strong></li>
@@ -157,7 +164,7 @@ def write_home(snapshot, summary):
     {week_table(facts["weekly"])}
     <p><a href="people.html">People, by share of achievements</a></p>
 """
-    (SITE / "index.html").write_text(page("Omarchy work map", body, root="."))
+    (SITE / "index.html").write_text(page("Omarchy Quattro Arena", body, root="."))
 
 
 def write_people(summary):
@@ -191,7 +198,7 @@ def write_people(summary):
     <h2>The catalog</h2>
     <ul class="catalog">{catalog}</ul>
 """
-    (SITE / "people.html").write_text(page("People — Omarchy work map", body, root="."))
+    (SITE / "people.html").write_text(page("People — Omarchy Quattro Arena", body, root="."))
 
 
 def write_area(area, summary):
@@ -228,7 +235,7 @@ def write_area(area, summary):
     directory = SITE / "area"
     directory.mkdir(parents=True, exist_ok=True)
     (directory / f"{area}.html").write_text(
-        page(f"{label} — Omarchy work map", body, root="..")
+        page(f"{label} — Omarchy Quattro Arena", body, root="..")
     )
 
 
@@ -269,7 +276,7 @@ def write_person(person):
     directory = SITE / "person"
     directory.mkdir(parents=True, exist_ok=True)
     (directory / f"{login}.html").write_text(
-        page(f"{login} — Omarchy work map", body, root="..")
+        page(f"{login} — Omarchy Quattro Arena", body, root="..")
     )
 
 
@@ -296,7 +303,7 @@ def write_methodology(snapshot):
     <p>Generated {escape(snapshot["generated_at"])}.</p>
 """
     (SITE / "methodology.html").write_text(
-        page("How we count — Omarchy work map", body, root=".")
+        page("How we count — Omarchy Quattro Arena", body, root=".")
     )
 
 

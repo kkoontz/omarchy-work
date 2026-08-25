@@ -1,0 +1,11 @@
+{
+  "current": "beta",
+  "seasons": [
+    {
+      "id": "beta",
+      "name": "Beta",
+      "start": "2026-08-25",
+      "end": "2026-12-31"
+    }
+  ]
+}

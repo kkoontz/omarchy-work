@@ -1,8 +1,10 @@
-# Omarchy work map
+# Omarchy Quattro Arena
 
 Merged work on [`basecamp/omarchy`](https://github.com/basecamp/omarchy): by area, by login, by what actually landed.
 
 Live: https://kkoontz.github.io/omarchy-work/
+
+Beta season: 2026-08-25 – 2026-12-31 (`data/seasons.json`).
 
 ## Run locally
 
