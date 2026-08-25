@@ -662,7 +662,12 @@ header {
 }
 nav { margin-top: 0.65rem; }
 nav a { margin-right: 1rem; }
-.mark { font-size: 1rem; font-weight: 700; margin: 0; }
+.mark, h1, h2, th, .standing { color: var(--got); font-weight: 700; }
+.mark { font-size: 1rem; margin: 0; }
+.mark a {
+  color: var(--got);
+  text-decoration: none;
+}
 .sub, .meta, footer, .areas, .placing { color: rgb(var(--rgb-terminal-white) / 0.55); font-size: 0.92rem; }
 a {
   color: var(--link);
@@ -673,6 +678,7 @@ a {
 }
 @media (hover: hover) {
   a:hover { color: var(--hover); }
+  .mark a:hover { color: rgb(var(--rgb-turquoise)); }
 }
 table { width: 100%; border-collapse: collapse; margin: 1.5rem 0; }
 th, td { text-align: left; padding: 0.4rem 0.5rem; border-bottom: 1px solid var(--line); }
@@ -696,7 +702,7 @@ ul.frags {
 }
 ul.frags li { margin: 0.35rem 0; }
 .placing { font-style: italic; font-weight: 300; }
-.standing { font-size: 1.15rem; font-weight: 700; margin: 0.35rem 0 1rem; }
+.standing { font-size: 1.15rem; margin: 0.35rem 0 1rem; }
 dl.sheet {
   display: grid;
   grid-template-columns: 7rem 1fr;
