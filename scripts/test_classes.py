@@ -18,10 +18,10 @@ CONFIG = {
         "session": "Session",
         "bin": "Bin",
         "image": "Image",
-        "migrations": "Migrations",
-        "themes": "Themes",
-        "plugins": "Plugins",
-        "docs": "Docs",
+        "migrations": "Upgrade",
+        "themes": "Theme",
+        "plugins": "Mod",
+        "docs": "Manual",
     },
     "buckets": {
         "session": ["shell", "hyprland"],
@@ -67,22 +67,22 @@ class Mix(unittest.TestCase):
             [event(70, ["themes"]), event(30, ["manual"])],
             config=CONFIG,
         )
-        self.assertEqual(info["label"], "Themes")
-        self.assertEqual(info["secondary_label"], "Docs")
-        self.assertEqual(display(info), "Themes / Docs")
+        self.assertEqual(info["label"], "Theme")
+        self.assertEqual(info["secondary_label"], "Manual")
+        self.assertEqual(display(info), "Theme / Manual")
 
     def test_no_secondary_below_thirty(self):
         info = classify(
             [event(80, ["themes"]), event(20, ["manual"])],
             config=CONFIG,
         )
-        self.assertEqual(info["label"], "Themes")
+        self.assertEqual(info["label"], "Theme")
         self.assertIsNone(info["secondary"])
 
     def test_split_across_areas_on_one_event(self):
         info = classify([event(10, ["themes", "manual"])], config=CONFIG)
-        self.assertEqual(info["label"], "Themes")
-        self.assertEqual(info["secondary_label"], "Docs")
+        self.assertEqual(info["label"], "Theme")
+        self.assertEqual(info["secondary_label"], "Manual")
 
     def test_other_does_not_classify(self):
         info = classify([event(10, ["other"])], config=CONFIG)
@@ -106,7 +106,7 @@ class PersonSource(unittest.TestCase):
             ]
         }
         info = for_person(person, lambda stamp: stamp.startswith("2026-08"))
-        self.assertEqual(info["label"], "Themes")
+        self.assertEqual(info["label"], "Theme")
         self.assertEqual(info["source"], "season")
 
     def test_lifetime_when_no_season_events(self):
@@ -120,7 +120,7 @@ class PersonSource(unittest.TestCase):
             ]
         }
         info = for_person(person, lambda stamp: False)
-        self.assertEqual(info["label"], "Docs")
+        self.assertEqual(info["label"], "Manual")
         self.assertEqual(info["source"], "lifetime")
 
 

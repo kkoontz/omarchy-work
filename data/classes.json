@@ -13,10 +13,10 @@
     "session": "Session",
     "bin": "Bin",
     "image": "Image",
-    "migrations": "Migrations",
-    "themes": "Themes",
-    "plugins": "Plugins",
-    "docs": "Docs"
+    "migrations": "Upgrade",
+    "themes": "Theme",
+    "plugins": "Mod",
+    "docs": "Manual"
   },
   "buckets": {
     "session": ["shell", "hyprland"],

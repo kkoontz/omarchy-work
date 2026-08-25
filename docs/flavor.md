@@ -2,13 +2,13 @@
 
 Locked name: **Omarchy Quattro Arena**.
 
-Ladder is a ranked list: place, tier, score. Not a class table.
+Ladder is a ranked list: place, tier, score. Home is that list.
 
-## Classes (profile only; placeholder names)
+## Classes (profile only)
 
-Desktop, Migrations, Themes, Plugins, Docs.
+Session, Bin, Image, Upgrade, Theme, Mod, Manual.
 
-These are labor labels from area mix, not ranks. Real names later. No dual-label.
+Labor labels from area mix, not ranks. No dual-label.
 
 ## Frag callouts (wired on the combat log)
 
@@ -22,7 +22,7 @@ From merge timestamps, not from chat:
 - 7 → Ultra Kill
 - 8+ → Godlike / Unstoppable
 
-These are announcements on the person combat log. The home strip is the **kill feed** (frags from the last 7 days). Keep the word frag. They do not replace score.
+These are announcements on the person combat log. The home kill feed is those callouts from the last 7 days. Keep the word frag. They do not replace score.
 
 ## Scoring (wired)
 
